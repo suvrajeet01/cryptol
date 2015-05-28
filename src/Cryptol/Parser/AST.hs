@@ -243,6 +243,9 @@ data Expr     = EVar QName                      -- ^ @ x @
               | ETypeVal Type                   -- ^ @ `(x + 1)@, @x@ is a type
               | EFun [Pattern] Expr             -- ^ @ \\x y -> x @
               | ELocated Expr Range             -- ^ position annotation
+
+              | EParens Expr                    -- ^ @ (e)   @ (Removed by Fixity)
+              | EInfix Expr (LQName) Expr       -- ^ @ a + b @ (Removed by Fixity)
                 deriving (Eq,Show)
 
 data TypeInst = NamedInst (Named Type)
@@ -663,6 +666,10 @@ instance PP Expr where
 
       ELocated e _  -> ppPrec n e
 
+      EParens e -> parens (pp e)
+
+      EInfix e1 op e2 -> wrap n 0 (pp e1 <+> pp (thing op) <+> pp e2) 
+
 instance PP Selector where
   ppPrec _ sel =
     case sel of
@@ -866,6 +873,9 @@ instance NoPos Expr where
       ETypeVal x    -> ETypeVal (noPos x)
       EFun x y      -> EFun     (noPos x) (noPos y)
       ELocated x _  -> noPos x
+
+      EParens e     -> EParens (noPos e)
+      EInfix x y z  -> EInfix (noPos x) y (noPos z)
 
 instance NoPos TypeInst where
   noPos (PosInst ts)   = PosInst (noPos ts)

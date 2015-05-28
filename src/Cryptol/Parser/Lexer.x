@@ -6,7 +6,7 @@
 module Cryptol.Parser.Lexer
   ( primLexer, lexer, Layout(..)
   , Token(..), TokenT(..)
-  , TokenV(..), TokenKW(..), TokenErr(..), TokenOp(..), TokenSym(..), TokenW(..)
+  , TokenV(..), TokenKW(..), TokenErr(..), TokenSym(..), TokenW(..)
   , Located(..)
   , Config(..)
   , defaultConfig
@@ -123,38 +123,38 @@ $white+                   { emit $ White Space }
 "_"                       { emit $ Sym Underscore }
 @id                       { mkIdent }
 
-"+"                       { emit $ Op Plus }
-"-"                       { emit $ Op Minus }
-"*"                       { emit $ Op Mul }
-"/"                       { emit $ Op Div }
-"%"                       { emit $ Op Mod }
-"^^"                      { emit $ Op Exp }
+"+"                       { emit  (Op   Plus ) }
+"-"                       { emit  (Op   Minus) }
+"*"                       { emit  (Op   Mul  ) }
+"/"                       { emit  (Op   Div  ) }
+"%"                       { emit  (Op   Mod  ) }
+"^^"                      { emit  (Op   Exp  ) }
 
-"!="                      { emit $ Op NotEqual }
-"=="                      { emit $ Op Equal }
-"==="                     { emit $ Op EqualFun }
-"!=="                     { emit $ Op NotEqualFun }
-">"                       { emit $ Op GreaterThan }
-"<"                       { emit $ Op LessThan }
-"<="                      { emit $ Op LEQ }
-">="                      { emit $ Op GEQ }
+"!="                      { emitS (Op . Other) }
+"=="                      { emit  (Op   Equal) }
+"==="                     { emitS (Op . Other) }
+"!=="                     { emitS (Op . Other) }
+">"                       { emitS (Op . Other) }
+"<"                       { emitS (Op . Other) }
+"<="                      { emit  (Op   LEQ  ) }
+">="                      { emit  (Op   GEQ  ) }
 
-">>"                      { emit $ Op ShiftR }
-"<<"                      { emit $ Op ShiftL }
-">>>"                     { emit $ Op RotR }
-"<<<"                     { emit $ Op RotL }
+">>"                      { emitS (Op . Other) }
+"<<"                      { emitS (Op . Other) }
+">>>"                     { emitS (Op . Other) }
+"<<<"                     { emitS (Op . Other) }
 
-"~"                       { emit $ Op Complement }
+"~"                       { emit  (Op   Complement) }
 
-"^"                       { emit $ Op Xor  }
-"||"                      { emit $ Op Disj }
-"&&"                      { emit $ Op Conj }
+"^"                       { emitS (Op . Other) }
+"||"                      { emitS (Op . Other) }
+"&&"                      { emitS (Op . Other) }
 
-"!"                       { emit $ Op Bang }
-"!!"                      { emit $ Op BangBang }
-"@"                       { emit $ Op At }
-"@@"                      { emit $ Op AtAt }
-"#"                       { emit $ Op Hash }
+"!"                       { emitS (Op . Other) }
+"!!"                      { emitS (Op . Other) }
+"@"                       { emitS (Op . Other) }
+"@@"                      { emitS (Op . Other) }
+"#"                       { emit  (Op   Hash ) }
 
 "\"                       { emit $ Sym Lambda }
 "->"                      { emit $ Sym ArrR }

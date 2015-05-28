@@ -355,12 +355,9 @@ data TokenKW  = KW_Arith
                 deriving (Eq,Show)
 
 data TokenOp  = Plus | Minus | Mul | Div | Exp | Mod
-              | NotEqual | Equal | LessThan | GreaterThan | LEQ | GEQ
-              | EqualFun | NotEqualFun
-              | ShiftL | ShiftR | RotL | RotR
-              | Conj | Disj | Xor
-              | Complement
-              | Bang | BangBang | At | AtAt | Hash
+              | Equal | LEQ | GEQ
+              | Complement | Hash
+              | Other String
                 deriving (Eq,Show)
 
 data TokenSym = Bar

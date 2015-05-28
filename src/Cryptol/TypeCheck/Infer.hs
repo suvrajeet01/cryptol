@@ -141,6 +141,8 @@ appTys expr ts tGoal =
     P.ETyped    {} -> mono
     P.ETypeVal  {} -> mono
     P.EFun      {} -> mono
+    P.EParens   {} -> tcPanic "appTys" [ "Unexpected EParens" ]
+    P.EInfix    {} -> tcPanic "appTys" [ "Unexpected EInfix" ]
 
   where mono = do e'     <- checkE expr tGoal
                   (ie,t) <- instantiateWith e' (Forall [] [] tGoal) ts
@@ -318,6 +320,9 @@ checkE expr tGoal =
     P.EFun ps e -> checkFun (text "anonymous function") ps e tGoal
 
     P.ELocated e r  -> inRange r (checkE e tGoal)
+
+    P.EParens{} -> tcPanic "checkE" [ "Unexpected EParens" ]
+    P.EInfix{}  -> tcPanic "checkE" [ "Unexpected EInfix" ]
 
 
 expectSeq :: Type -> InferM (Type,Type)

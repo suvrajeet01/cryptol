@@ -224,8 +224,8 @@ op s r = at r (ECon s)
 unOp :: Expr -> Expr -> Expr
 unOp f x = at (f,x) $ EApp f x
 
-binOp :: Expr -> Expr -> Expr -> Expr
-binOp x f y = at (x,y) $ EApp (EApp f x) y
+binOp :: Expr -> Located QName -> Expr -> Expr
+binOp x f y = at (x,y) $ EInfix x f y
 
 eFromTo :: Range -> Expr -> Maybe Expr -> Maybe Expr -> ParseM Expr
 eFromTo r e1 e2 e3 = EFromTo <$> exprToNumT r e1

@@ -32,6 +32,8 @@ $unitick        = \x7
 
 @id           = @id_first @id_next*
 
+@op           = ([\!\@\#\$\%\^\&\*\~\>\<\?\+\=] | $unisymbol)+
+
 @num2         = "0b" [0-1]+
 @num8         = "0o" [0-7]+
 @num10        = [0-9]+
@@ -74,17 +76,13 @@ $white+                   { emit $ White Space }
 "Arith"                   { emit $ KW KW_Arith }
 "Bit"                     { emit $ KW KW_Bit }
 "Cmp"                     { emit $ KW KW_Cmp }
-"False"                   { emit $ KW KW_False }
 "Inf"                     { emit $ KW KW_inf }
-"True"                    { emit $ KW KW_True }
 "else"                    { emit $ KW KW_else }
 "Eq"                      { emit $ KW KW_Eq }
-"error"                   { emit $ KW KW_error }
 "extern"                  { emit $ KW KW_extern }
 "fin"                     { emit $ KW KW_fin }
 "if"                      { emit $ KW KW_if }
 "private"                 { emit $ KW KW_private }
-"join"                    { emit $ KW KW_join }
 "include"                 { emit $ KW KW_include }
 "inf"                     { emit $ KW KW_inf }
 "lg2"                     { emit $ KW KW_lg2 }
@@ -96,20 +94,11 @@ $white+                   { emit $ White Space }
 "newtype"                 { emit $ KW KW_newtype }
 "pragma"                  { emit $ KW KW_pragma }
 "property"                { emit $ KW KW_property }
-"pmult"                   { emit $ KW KW_pmult }
-"pdiv"                    { emit $ KW KW_pdiv }
-"pmod"                    { emit $ KW KW_pmod }
-"random"                  { emit $ KW KW_random }
-"reverse"                 { emit $ KW KW_reverse }
-"split"                   { emit $ KW KW_split }
-"splitAt"                 { emit $ KW KW_splitAt }
 "then"                    { emit $ KW KW_then }
-"transpose"               { emit $ KW KW_transpose }
 "type"                    { emit $ KW KW_type  }
 "where"                   { emit $ KW KW_where }
 "let"                     { emit $ KW KW_let }
 "x"                       { emit $ KW KW_x }
-"zero"                    { emit $ KW KW_zero }
 "import"                  { emit $ KW KW_import }
 "as"                      { emit $ KW KW_as }
 "hiding"                  { emit $ KW KW_hiding }
@@ -122,39 +111,6 @@ $white+                   { emit $ White Space }
 
 "_"                       { emit $ Sym Underscore }
 @id                       { mkIdent }
-
-"+"                       { emit  (Op   Plus ) }
-"-"                       { emit  (Op   Minus) }
-"*"                       { emit  (Op   Mul  ) }
-"/"                       { emit  (Op   Div  ) }
-"%"                       { emit  (Op   Mod  ) }
-"^^"                      { emit  (Op   Exp  ) }
-
-"!="                      { emitS (Op . Other) }
-"=="                      { emit  (Op   Equal) }
-"==="                     { emitS (Op . Other) }
-"!=="                     { emitS (Op . Other) }
-">"                       { emitS (Op . Other) }
-"<"                       { emitS (Op . Other) }
-"<="                      { emit  (Op   LEQ  ) }
-">="                      { emit  (Op   GEQ  ) }
-
-">>"                      { emitS (Op . Other) }
-"<<"                      { emitS (Op . Other) }
-">>>"                     { emitS (Op . Other) }
-"<<<"                     { emitS (Op . Other) }
-
-"~"                       { emit  (Op   Complement) }
-
-"^"                       { emitS (Op . Other) }
-"||"                      { emitS (Op . Other) }
-"&&"                      { emitS (Op . Other) }
-
-"!"                       { emitS (Op . Other) }
-"!!"                      { emitS (Op . Other) }
-"@"                       { emitS (Op . Other) }
-"@@"                      { emitS (Op . Other) }
-"#"                       { emit  (Op   Hash ) }
 
 "\"                       { emit $ Sym Lambda }
 "->"                      { emit $ Sym ArrR }
@@ -182,6 +138,24 @@ $white+                   { emit $ White Space }
 
 \"                        { startString }
 \'                        { startChar }
+
+-- special cases for types and kinds
+"+"                       { emit  (Op   Plus ) }
+"-"                       { emit  (Op   Minus) }
+"*"                       { emit  (Op   Mul  ) }
+"/"                       { emit  (Op   Div  ) }
+"%"                       { emit  (Op   Mod  ) }
+"^^"                      { emit  (Op   Exp  ) }
+"=="                      { emit  (Op   Equal) }
+"<="                      { emit  (Op   LEQ  ) }
+">="                      { emit  (Op   GEQ  ) }
+"*"                       { emit  (Op   Hash ) }
+
+-- hash is used as a kind, and as a pattern
+"#"                       { emit  (Op   Hash ) }
+
+-- all other operators
+@op                       { emitS (Op . Other) }
 }
 
 

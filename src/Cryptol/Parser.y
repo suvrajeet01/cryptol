@@ -47,12 +47,9 @@ import Paths_cryptol
   'private'   { Located $$ (Token (KW KW_private)   _)}
   'property'  { Located $$ (Token (KW KW_property)  _)}
 
-  'False'     { Located $$ (Token (KW KW_False  ) _)}
-  'True'      { Located $$ (Token (KW KW_True   ) _)}
   'Arith'     { Located $$ (Token (KW KW_Arith  ) _)}
   'Bit'       { Located $$ (Token (KW KW_Bit    ) _)}
   'Cmp'       { Located $$ (Token (KW KW_Cmp    ) _)}
-  'error'     { Located $$ (Token (KW KW_error  ) _)}
   'fin'       { Located $$ (Token (KW KW_fin    ) _)}
   'inf'       { Located $$ (Token (KW KW_inf    ) _)}
   'lg2'       { Located $$ (Token (KW KW_lg2    ) _)}
@@ -68,17 +65,7 @@ import Paths_cryptol
   'else'      { Located $$ (Token (KW KW_else   ) _)}
   'min'       { Located $$ (Token (KW KW_min    ) _)}
   'max'       { Located $$ (Token (KW KW_max    ) _)}
-  'zero'      { Located $$ (Token (KW KW_zero   ) _)}
-  'join'      { Located $$ (Token (KW KW_join   ) _)}
-  'reverse'   { Located $$ (Token (KW KW_reverse) _)}
-  'split'     { Located $$ (Token (KW KW_split  ) _)}
-  'splitAt'   { Located $$ (Token (KW KW_splitAt) _)}
-  'transpose' { Located $$ (Token (KW KW_transpose) _)}
   'x'         { Located $$ (Token (KW KW_x)       _)}
-  'pmult'     { Located $$ (Token (KW KW_pmult)   _)}
-  'pmod'      { Located $$ (Token (KW KW_pmod)    _)}
-  'pdiv'      { Located $$ (Token (KW KW_pdiv)    _)}
-  'random'    { Located $$ (Token (KW KW_random)  _)}
 
   '['         { Located $$ (Token (Sym BracketL) _)}
   ']'         { Located $$ (Token (Sym BracketR) _)}
@@ -369,31 +356,9 @@ aexprs                         :: { [Expr]  }
 aexpr                          :: { Expr                                   }
   : qname                         { at $1 $ EVar (thing $1)                }
 
-  | 'min'                         { at $1 $ ECon ECMin                     }
-  | 'max'                         { at $1 $ ECon ECMax                     }
-  | 'lg2'                         { at $1 $ ECon ECLg2                     }
-
-  | 'zero'                        { at $1 $ ECon ECZero                    }
-  | 'join'                        { at $1 $ ECon ECJoin                    }
-  | 'split'                       { at $1 $ ECon ECSplit                   }
-  | 'splitAt'                     { at $1 $ ECon ECSplitAt                 }
-
   | NUM                           { at $1 $ numLit (tokenType (thing $1))  }
   | STRLIT                        { at $1 $ ELit $ ECString $ getStr $1    }
   | CHARLIT                       { at $1 $ ELit $ ECNum (getNum $1) CharLit }
-  | 'False'                       { at $1 $ ECon ECFalse                   }
-  | 'True'                        { at $1 $ ECon ECTrue                    }
-
-  | 'error'                       { at $1 $ ECon ECError                   }
-
-  | 'reverse'                     { at $1 $ ECon ECReverse                 }
-  | 'transpose'                   { at $1 $ ECon ECTranspose               }
-
-  | 'pmult'                       { at $1 $ ECon ECPMul                    }
-  | 'pdiv'                        { at $1 $ ECon ECPDiv                    }
-  | 'pmod'                        { at $1 $ ECon ECPMod                    }
-
-  | 'random'                      { at $1 $ ECon ECRandom                  }
 
   | '(' expr ')'                  { at ($1,$3) $ EParens $2                }
   | '(' tuple_exprs ')'           { at ($1,$3) $ ETuple (reverse $2)       }

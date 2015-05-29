@@ -477,7 +477,7 @@ typeOfCmd str = do
   --io (mapM_ printWarning ws)
   whenDebug (rPutStrLn (dump def))
   (_,names) <- getFocusedEnv
-  rPrint $ runDoc names $ pp expr <+> text ":" <+> pp sig
+  rPrint $ runDoc names $ pp def <+> text ":" <+> pp sig
 
 reloadCmd :: REPL ()
 reloadCmd  = do

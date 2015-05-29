@@ -36,6 +36,9 @@ translateExprToNumT expr =
                        ec <- cvtCon =<< Map.lookup (thing o) primNames
                        f  <- tApp (at o ec) e1
                        tApp f e2
+
+    EParens e    -> translateExprToNumT e
+
     _            -> Nothing
 
   where

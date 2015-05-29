@@ -356,6 +356,10 @@ aexprs                         :: { [Expr]  }
 aexpr                          :: { Expr                                   }
   : qname                         { at $1 $ EVar (thing $1)                }
 
+  | 'min'                         { at $1 $ EVar $ mkUnqual (Name "min")   }
+  | 'max'                         { at $1 $ EVar $ mkUnqual (Name "max")   }
+  | 'lg2'                         { at $1 $ EVar $ mkUnqual (Name "lg2")   }
+
   | NUM                           { at $1 $ numLit (tokenType (thing $1))  }
   | STRLIT                        { at $1 $ ELit $ ECString $ getStr $1    }
   | CHARLIT                       { at $1 $ ELit $ ECNum (getNum $1) CharLit }

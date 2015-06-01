@@ -295,9 +295,12 @@ newtype_body            :: { [Named Type] }
   : '{' '}'                { [] }
   | '{' field_types '}'    { $2 }
 
-vars_comma              :: { [ LName ]  }
-  : name                   { [ $1]      }
-  | vars_comma ',' name    { $3 : $1    }
+vars_comma                 :: { [ LName ]  }
+  : name                      { [ $1]      }
+  | vars_comma ',' name       { $3 : $1    }
+
+  | '(' op ')'                { [fmap unqual $2]    }
+  | vars_comma ',' '(' op ')' { fmap unqual $4 : $1 }
 
 apats                   :: { [Pattern]  }
   : apat                   { [$1]       }

@@ -19,8 +19,6 @@ import Cryptol.Utils.Panic (panic)
 import Data.Maybe (catMaybes)
 import qualified Data.Map as Map
 
-import Debug.Trace
-
 #if __GLASGOW_HASKELL__ < 710
 import Control.Applicative (Applicative, (<$>), (<*>))
 import Data.Monoid (Monoid(..))
@@ -246,7 +244,7 @@ instance BindsNames Module where
 
     fixity b =
       case bFixity b of
-        Just f  -> traceShowId $ mempty { neFixity = Map.singleton (thing (qual (bName b))) [f] }
+        Just f  -> mempty { neFixity = Map.singleton (thing (qual (bName b))) [f] }
         Nothing -> mempty
 
     newtypeEnv n = singletonT (thing qn) (TFromNewtype (qual qn))

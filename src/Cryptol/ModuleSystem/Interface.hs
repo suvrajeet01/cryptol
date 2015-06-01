@@ -81,6 +81,8 @@ data IfaceDecl = IfaceDecl
   { ifDeclName    :: QName
   , ifDeclSig     :: Schema
   , ifDeclPragmas :: [Pragma]
+  , ifDeclInfix   :: Bool
+  , ifDeclFixity  :: Maybe Fixity
   } deriving (Show)
 
 mkIfaceDecl :: Decl -> IfaceDecl
@@ -88,6 +90,8 @@ mkIfaceDecl d = IfaceDecl
   { ifDeclName    = dName d
   , ifDeclSig     = dSignature d
   , ifDeclPragmas = dPragmas d
+  , ifDeclInfix   = dInfix d
+  , ifDeclFixity  = dFixity d
   }
 
 -- | Like mapIfaceDecls, but gives you back a NameEnv that describes the

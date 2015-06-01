@@ -251,7 +251,21 @@ decl                    :: { Decl }
                                           , bSignature = Nothing
                                           , bPragmas   = []
                                           , bMono      = False
+                                          , bInfix     = False
+                                          , bFixity    = Nothing
                                           } }
+
+  | apat op apat '=' expr  { at ($1,$5) $
+                             DBind $ Bind { bName      = $2
+                                          , bParams    = [$1,$3]
+                                          , bDef       = $5
+                                          , bSignature = Nothing
+                                          , bPragmas   = []
+                                          , bMono      = False
+                                          , bInfix     = True
+                                          , bFixity    = Nothing
+                                          } }
+
   | 'type' name '=' type   {% at ($1,$4) `fmap` mkTySyn $2 [] $4 }
   | 'type' name tysyn_params '=' type
                            {% at ($1,$5) `fmap` mkTySyn $2 (reverse $3) $5  }

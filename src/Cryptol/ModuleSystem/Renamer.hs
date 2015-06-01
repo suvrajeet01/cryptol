@@ -277,6 +277,7 @@ instance Rename Decl where
     DType syn         -> DType         <$> rename syn
     DLocated d' r     -> withLoc r
                        $ DLocated      <$> rename d'  <*> pure r
+    DFixity{}         -> panic "Renamer" ["Unexpected fixity declaration", show d]
 
 instance Rename Newtype where
   rename n      = do

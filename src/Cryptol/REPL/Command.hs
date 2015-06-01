@@ -592,7 +592,8 @@ browseVars (decls,names) pfx = do
       rPutStrLn name
       rPutStrLn (replicate (length name) '=')
       let step k d acc =
-              pp k <+> char ':' <+> pp (M.ifDeclSig d) : acc
+              optParens (M.ifDeclInfix d) (pp k)
+                <+> char ':' <+> pp (M.ifDeclSig d) : acc
       rPrint (runDoc names (nest 4 (vcat (Map.foldrWithKey step [] xs))))
       rPutStrLn ""
 
@@ -782,6 +783,8 @@ bindItVariable ty expr = do
                     , T.dSignature  = schema
                     , T.dDefinition = expr
                     , T.dPragmas    = []
+                    , T.dInfix      = False
+                    , T.dFixity     = Nothing
                     }
   liftModuleCmd (M.evalDecls [dg])
   denv <- getDynEnv

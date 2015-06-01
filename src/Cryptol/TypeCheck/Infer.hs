@@ -735,6 +735,8 @@ checkMonoB b t =
                  , dSignature = Forall [] [] t
                  , dDefinition = e1
                  , dPragmas = P.bPragmas b
+                 , dInfix = P.bInfix b
+                 , dFixity = P.bFixity b
                  }
 
 -- XXX: Do we really need to do the defaulting business in two different places?
@@ -792,6 +794,8 @@ checkSigB b (Forall as asmps0 t0, validSchema) =
         , dSignature  = Forall as asmps t
         , dDefinition = foldr ETAbs (foldr EProofAbs e2 asmps) as
         , dPragmas    = P.bPragmas b
+        , dInfix      = P.bInfix b
+        , dFixity     = P.bFixity b
         }
 
 inferDs :: FromDecl d => [d] -> ([DeclGroup] -> InferM a) -> InferM a

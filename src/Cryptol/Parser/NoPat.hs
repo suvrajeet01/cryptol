@@ -49,7 +49,7 @@ instance RemovePatterns [Decl] where
 simpleBind :: Located QName -> Expr -> Bind
 simpleBind x e = Bind { bName = x, bParams = [], bDef = e
                       , bSignature = Nothing, bPragmas = []
-                      , bMono = True
+                      , bMono = True, bInfix = False, bFixity = Nothing
                       }
 
 sel :: Pattern -> QName -> Selector -> Bind
@@ -213,6 +213,8 @@ noMatchD decl =
                                               , bSignature = Nothing
                                               , bPragmas = []
                                               , bMono = False
+                                              , bInfix = False
+                                              , bFixity = Nothing
                                               } : map DBind bs
     DType {}        -> return [decl]
 
@@ -224,7 +226,8 @@ noPatDs ds =
   do ds1 <- concat <$> mapM noMatchD ds
      let pragmaMap = Map.fromListWith (++) $ concatMap toPragma ds1
          sigMap    = Map.fromListWith (++) $ concatMap toSig ds1
-     (ds2, (pMap,sMap)) <- runStateT (pragmaMap, sigMap) $ annotDs ds1
+         fixMap    = Map.fromListWith (++) $ concatMap toFixity ds1
+     (ds2, (pMap,sMap,fMap)) <- runStateT (pragmaMap, sigMap, fixMap) $ annotDs ds1
 
      forM_ (Map.toList pMap) $ \(n,ps) ->
        forM_ ps $ \p -> recordError $ PragmaNoBind (p { thing = n }) (thing p)
@@ -233,6 +236,9 @@ noPatDs ds =
        do _ <- checkSigs n ss
           forM_ ss $ \s -> recordError $ SignatureNoBind (s { thing = n })
                                                          (thing s)
+
+     forM_ (Map.toList fMap) $ \(n,fs) ->
+       forM_ fs $ \f -> recordError $ FixityNoBind f { thing = n }
 
      return ds2
 
@@ -243,9 +249,10 @@ noPatTopDs tds =
      let allDecls  = concat noPatGroups
          pragmaMap = Map.fromListWith (++) $ concatMap toPragma allDecls
          sigMap    = Map.fromListWith (++) $ concatMap toSig    allDecls
+         fixMap    = Map.fromListWith (++) $ concatMap toFixity allDecls
 
      let exportGroups = zipWith (\ td ds -> td { tlValue = ds }) tds noPatGroups
-     (tds', (pMap,sMap)) <- runStateT (pragmaMap,sigMap) (annotTopDs exportGroups)
+     (tds', (pMap,sMap,fMap)) <- runStateT (pragmaMap,sigMap,fixMap) (annotTopDs exportGroups)
 
      forM_ (Map.toList pMap) $ \(n,ps) ->
        forM_ ps $ \p -> recordError $ PragmaNoBind (p { thing = n }) (thing p)
@@ -254,6 +261,9 @@ noPatTopDs tds =
        do _ <- checkSigs n ss
           forM_ ss $ \s -> recordError $ SignatureNoBind (s { thing = n })
                                                          (thing s)
+
+     forM_ (Map.toList fMap) $ \(n,fs) ->
+       forM_ fs $ \f -> recordError $ FixityNoBind f { thing = n }
 
      return tds'
 
@@ -283,6 +293,7 @@ noPatModule m =
 
 type AnnotMap = ( Map.Map QName [Located Pragma]
                 , Map.Map QName [Located Schema]
+                , Map.Map QName [Located Fixity]
                 )
 
 -- | Add annotations to exported declaration groups.
@@ -330,16 +341,19 @@ annotD decl =
 -- | Add pragma/signature annotations to a binding.
 annotB :: Bind -> StateT AnnotMap NoPatM Bind
 annotB Bind { .. } =
-  do (ps,ss) <- get
+  do (ps,ss,fs) <- get
      let name = thing bName
      case ( Map.updateLookupWithKey (\_ _ -> Nothing) name ps
           , Map.updateLookupWithKey (\_ _ -> Nothing) name ss
+          , Map.updateLookupWithKey (\_ _ -> Nothing) name fs
           ) of
-           ( (thisPs, pragmas1) , (thisSigs, sigs1)) ->
+           ( (thisPs, pragmas1), (thisSigs, sigs1), (thisFixes, fixes1)) ->
                 do s <- lift $ checkSigs name (jn thisSigs)
-                   set (pragmas1,sigs1)
+                   f <- lift $ checkFixs name (jn thisFixes)
+                   set (pragmas1,sigs1,fixes1)
                    return Bind { bSignature = s
                                , bPragmas = map thing (jn thisPs) ++ bPragmas
+                               , bFixity = f
                                , ..
                                }
   where jn x = concat (maybeToList x)
@@ -350,6 +364,12 @@ checkSigs _ []             = return Nothing
 checkSigs _ [s]            = return (Just (thing s))
 checkSigs f xs@(s : _ : _) = do recordError $ MultipleSignatures f xs
                                 return (Just (thing s))
+
+checkFixs :: QName -> [Located Fixity] -> NoPatM (Maybe Fixity)
+checkFixs _ []       = return Nothing
+checkFixs _ [f]      = return (Just (thing f))
+checkFixs f fs@(x:_) = do recordError $ MultipleFixities f $ map srcRange fs
+                          return (Just (thing x))
 
 
 -- | Does this declaration provide some signatures?
@@ -364,6 +384,11 @@ toPragma (DLocated d _)   = toPragma d
 toPragma (DPragma xs s)   = [ (thing x,[Located (srcRange x) s]) | x <- xs ]
 toPragma _                = []
 
+-- | Does this declaration provide fixity information?
+toFixity :: Decl -> [(QName, [Located Fixity])]
+toFixity (DFixity f ns) = [ (thing n, [Located (srcRange n) f]) | n <- ns ]
+toFixity _              = []
+
 
 
 
@@ -375,6 +400,8 @@ data RW     = RW { names :: !Int, errors :: [Error] }
 data Error  = MultipleSignatures QName [Located Schema]
             | SignatureNoBind (Located QName) Schema
             | PragmaNoBind (Located QName) Pragma
+            | MultipleFixities QName [Range]
+            | FixityNoBind (Located QName)
               deriving (Show)
 
 instance Functor NoPatM where fmap = liftM
@@ -429,5 +456,11 @@ instance PP Error where
         text "Pragma without a matching binding:"
          $$ nest 2 (pp s)
 
+      MultipleFixities n locs ->
+        text "Multiple fixity declarations for" <+> quotes (pp n)
+        $$ nest 2 (vcat (map pp locs))
 
-
+      FixityNoBind n ->
+        text "At" <+> pp (srcRange n) <> colon <+>
+        text "Fixity declaration without a matching binding for:" <+>
+         pp (thing n)

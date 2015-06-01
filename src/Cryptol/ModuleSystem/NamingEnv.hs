@@ -222,6 +222,7 @@ instance BindsNames Module where
       DPragma ns _p         -> foldMap qualBind ns
       DBind b               -> qualBind (bName b)
       DPatBind _pat _e      -> panic "ModuleSystem" ["Unexpected pattern binding"]
+      DFixity{}             -> panic "ModuleSystem" ["Unexpected fixity declaration"]
       DType (TySyn lqn _ _) -> qualType lqn
       DLocated d' _         -> declEnv d'
 
@@ -238,6 +239,7 @@ instance BindsNames Decl where
     DPragma ns _p         -> foldMap qualBind ns
     DBind b               -> qualBind (bName b)
     DPatBind _pat _e      -> panic "ModuleSystem" ["Unexpected pattern binding"]
+    DFixity{}             -> panic "ModuleSystem" ["Unexpected fixity declaration"]
     DType (TySyn lqn _ _) -> qualType lqn
     DLocated d' _         -> namingEnv d'
     where

@@ -165,7 +165,7 @@ mkFixity assoc tok qns =
   do l <- intVal tok
      when (l < 0 || l > 10)
           (errorMessage (srcRange tok) "Fixity levels must be between 0 and 10")
-     return (DFixity assoc (fromInteger l) qns)
+     return (DFixity (Fixity assoc (fromInteger l)) qns)
 
 mkTupleSel :: Range -> Integer -> ParseM (Located Selector)
 mkTupleSel pos n
@@ -323,6 +323,8 @@ mkProperty f ps e = DBind Bind { bName       = fmap mkUnqual f
                                , bSignature  = Nothing
                                , bPragmas    = [PragmaProperty]
                                , bMono       = False
+                               , bInfix      = False
+                               , bFixity     = Nothing
                                }
 
 mkIf :: [(Expr, Expr)] -> Expr -> Expr

@@ -458,30 +458,30 @@ instance Rename Expr where
                    $ ELocated <$> rename e' <*> pure r
 
     EParens p     -> rename p
-    EInfix x y z  -> do op <- renameECon y
+    EInfix x y z  -> do op <- renameOp y
                         renameInfix x y op z
 
-renameInfix :: Expr -> Located QName -> (ECon,(Assoc,Int)) -> Expr -> RenameM Expr
+renameInfix :: Expr -> Located QName -> (Expr,Fixity) -> Expr -> RenameM Expr
 
-renameInfix (EInfix e1 o1 e2) o2 opr@(o2',(a2,p2)) e3 =
-  do opl@(o1',(a1,p1)) <- renameECon o1
+renameInfix (EInfix e1 o1 e2) o2 opr@(o2',Fixity a2 p2) e3 =
+  do opl@(o1',Fixity a1 p1) <- renameOp o1
 
      if | p1 > p2 || (p1 == p2 && a1 == LeftAssoc && a2 == LeftAssoc) ->
           do el <- renameInfix e1 o1 opl e2
              er <- rename e3
-             return (ECon o2' `EApp` el `EApp` er)
+             return (o2' `EApp` el `EApp` er)
 
         | p1 < p2 || (p1 == p2 && a1 == RightAssoc && a2 == RightAssoc) ->
           do el <- rename e1
              er <- renameInfix e2 o2 opr e3
-             return (ECon o1' `EApp` el `EApp` er)
+             return (o1' `EApp` el `EApp` er)
 
         | otherwise ->
           do record (FixityError o1 o2)
              e1' <- rename e1
              e2' <- rename e2
              e3' <- rename e3
-             return (ECon o2' `EApp` (ECon o1' `EApp` e1' `EApp` e2') `EApp` e3')
+             return (o2' `EApp` (o1' `EApp` e1' `EApp` e2') `EApp` e3')
 
 renameInfix (ELocated e _) o2 opr e3 =
      renameInfix e o2 opr e3
@@ -489,20 +489,33 @@ renameInfix (ELocated e _) o2 opr e3 =
 renameInfix e _ (op,_) e3 =
   do e'  <- rename e
      e3' <- rename e3
-     return (ECon op `EApp` e' `EApp` e3')
+     return (op `EApp` e' `EApp` e3')
 
 
-renameECon :: Located QName -> RenameM (ECon,(Assoc,Int))
-renameECon ln = withLoc ln $
-  do e <- renameVar (thing ln)
+renameOp :: Located QName -> RenameM (Expr,Fixity)
+renameOp ln = withLoc ln $
+  do e  <- renameVar (thing ln)
+     ro <- RenameM ask
      case e of
-       ECon n -> case Map.lookup n eBinOpPrec of
-                   Just fixity -> return (n,fixity)
-                   Nothing     -> panic "Renamer" [ "No fixity for primitive:"
-                                                  , show n
-                                                  , show ln ]
 
-       _      -> panic "Renamer" [ "Non-primitive infix operator", show e ]
+       -- lookup the operator in the fixed prim table
+       e' @ (ECon n) ->
+         case Map.lookup n eBinOpPrec of
+           Just (a,i) -> return (e',Fixity a i)
+           Nothing    -> panic "Renamer" [ "No fixity for primitive:"
+                                         , show n
+                                         , show ln ]
+
+       -- lookup the operator in the environment
+       e' @ (EVar n) ->
+         case Map.lookup n (neFixity (roNames ro)) of
+           Just [fixity] -> return (e',fixity)
+           _             -> panic "Renamer" [ "No fixity for operator:"
+                                            , show n
+                                            , show ln
+                                            , show (roNames ro)]
+
+       _      -> panic "Renamer" [ "Invalid infix operator", show e ]
 
 
 instance Rename TypeInst where

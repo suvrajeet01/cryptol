@@ -104,6 +104,10 @@ $white+                   { emit $ White Space }
 "hiding"                  { emit $ KW KW_hiding }
 "newtype"                 { emit $ KW KW_newtype }
 
+"infixl"                  { emit $ KW KW_infixl }
+"infixr"                  { emit $ KW KW_infixr }
+"infix"                   { emit $ KW KW_infix  }
+
 @num2                     { emitS (numToken 2  . drop 2) }
 @num8                     { emitS (numToken 8  . drop 2) }
 @num10                    { emitS (numToken 10 . drop 0) }

@@ -16,6 +16,7 @@ module Cryptol.Parser.AST
   , Name(..)
   , Named(..)
   , Pass(..)
+  , Assoc(..)
 
     -- * Types
   , Schema(..)
@@ -109,6 +110,7 @@ data TopDecl  = Decl (TopLevel Decl)
                 deriving (Eq,Show)
 
 data Decl     = DSignature [LQName] Schema
+              | DFixity Assoc !Int [LQName]
               | DPragma [LQName] Pragma
               | DBind Bind
               | DPatBind Pattern Expr
@@ -477,9 +479,15 @@ instance PP Decl where
       DSignature xs s -> commaSep (map ppL xs) <+> text ":" <+> pp s
       DPatBind p e    -> pp p <+> text "=" <+> pp e
       DBind b         -> ppPrec n b
+      DFixity a i ns  -> ppFixity a i ns
       DPragma xs p    -> ppPragma xs p
       DType ts        -> ppPrec n ts
       DLocated d _    -> ppPrec n d
+
+ppFixity :: Assoc -> Int -> [LQName] -> Doc
+ppFixity LeftAssoc  i ns = text "infixl" <+> int i <+> commaSep (map pp ns)
+ppFixity RightAssoc i ns = text "infixr" <+> int i <+> commaSep (map pp ns)
+ppFixity NonAssoc   i ns = text "infix"  <+> int i <+> commaSep (map pp ns)
 
 instance PP Newtype where
   ppPrec _ nt = hsep
@@ -823,6 +831,7 @@ instance NoPos Decl where
       DSignature x y   -> DSignature (noPos x) (noPos y)
       DPragma    x y   -> DPragma    (noPos x) (noPos y)
       DPatBind   x y   -> DPatBind   (noPos x) (noPos y)
+      DFixity a i ns   -> DFixity a i (noPos ns)
       DBind      x     -> DBind      (noPos x)
       DType      x     -> DType      (noPos x)
       DLocated   x _   -> noPos x

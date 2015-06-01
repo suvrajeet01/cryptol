@@ -46,6 +46,7 @@ namesD decl =
     DBind b       -> namesB b
     DPatBind p e  -> (namesP p, namesE e)
     DSignature {} -> ([],Set.empty)
+    DFixity{}     -> ([],Set.empty)
     DPragma {}    -> ([],Set.empty)
     DType {}      -> ([],Set.empty)
     DLocated d _  -> namesD d

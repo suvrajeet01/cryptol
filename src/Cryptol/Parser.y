@@ -46,6 +46,9 @@ import Paths_cryptol
   'hiding'    { Located $$ (Token (KW KW_hiding)    _)}
   'private'   { Located $$ (Token (KW KW_private)   _)}
   'property'  { Located $$ (Token (KW KW_property)  _)}
+  'infix'     { Located $$ (Token (KW KW_infix)     _)}
+  'infixl'    { Located $$ (Token (KW KW_infixl)    _)}
+  'infixr'    { Located $$ (Token (KW KW_infixr)    _)}
 
   'Arith'     { Located $$ (Token (KW KW_Arith  ) _)}
   'Bit'       { Located $$ (Token (KW KW_Bit    ) _)}
@@ -253,6 +256,10 @@ decl                    :: { Decl }
   | 'type' name tysyn_params '=' type
                            {% at ($1,$5) `fmap` mkTySyn $2 (reverse $3) $5  }
 
+  | 'infixl' NUM ops       {% mkFixity LeftAssoc  $2 (reverse $3) }
+  | 'infixr' NUM ops       {% mkFixity RightAssoc $2 (reverse $3) }
+  | 'infix'  NUM ops       {% mkFixity NonAssoc   $2 (reverse $3) }
+
 let_decl                :: { Decl }
   : 'let' apat '=' expr          { at ($2,$4) $ DPatBind $2 $4                    }
   | 'let' name apats '=' expr    { at ($2,$5) $
@@ -347,7 +354,9 @@ op                               :: { LQName }
   | '=='                            { Located $1 $ mkUnqual (Name "==") }
   | '<='                            { Located $1 $ mkUnqual (Name "<=") }
 
-
+ops                     :: { [LQName] }
+  : op                     { [$1] }
+  | ops ',' op             { $3 : $1 }
 
 aexprs                         :: { [Expr]  }
   : aexpr                         { [$1]    }

@@ -198,6 +198,7 @@ noMatchD decl =
   case decl of
     DSignature {}   -> return [decl]
     DPragma {}      -> return [decl]
+    DFixity{}       -> return [decl]
 
     DBind b         -> do b1 <- noMatchB b
                           return [DBind b1]
@@ -320,6 +321,7 @@ annotD decl =
   case decl of
     DBind b       -> DBind <$> lift (annotB b)
     DSignature {} -> raise ()
+    DFixity{}     -> raise ()
     DPragma {}    -> raise ()
     DPatBind {}   -> raise ()
     DType {}      -> return decl

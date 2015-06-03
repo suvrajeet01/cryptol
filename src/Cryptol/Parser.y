@@ -283,6 +283,8 @@ let_decl                :: { Decl }
                                                 , bSignature = Nothing
                                                 , bPragmas   = []
                                                 , bMono      = False
+                                                , bInfix     = False
+                                                , bFixity    = Nothing
                                                 } }
 
 newtype                 :: { Newtype }

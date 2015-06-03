@@ -30,7 +30,7 @@ module Cryptol.Parser.AST
   , Program(..)
   , TopDecl(..)
   , Decl(..)
-  , Fixity(..)
+  , Fixity(..), defaultFixity
   , TySyn(..)
   , Bind(..)
   , Pragma(..)
@@ -163,6 +163,9 @@ data Bind     = Bind { bName      :: LQName       -- ^ Defined thing
 data Fixity   = Fixity { fAssoc :: !Assoc
                        , fLevel :: !Int
                        } deriving (Eq,Show)
+
+defaultFixity :: Fixity
+defaultFixity  = Fixity LeftAssoc 9
 
 data Pragma   = PragmaNote String
               | PragmaProperty

@@ -510,10 +510,7 @@ renameOp ln = withLoc ln $
        e' @ (EVar n) ->
          case Map.lookup n (neFixity (roNames ro)) of
            Just [fixity] -> return (e',fixity)
-           _             -> panic "Renamer" [ "No fixity for operator:"
-                                            , show n
-                                            , show ln
-                                            , show (roNames ro)]
+           _             -> return (e',defaultFixity)
 
        _      -> panic "Renamer" [ "Invalid infix operator", show e ]
 

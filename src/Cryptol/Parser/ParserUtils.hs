@@ -8,18 +8,21 @@
 
 {-# LANGUAGE Safe, PatternGuards #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Cryptol.Parser.ParserUtils where
 
 import Cryptol.Parser.AST
 import Cryptol.Parser.Lexer
 import Cryptol.Parser.Position
 import Cryptol.Parser.Utils (translateExprToNumT)
+import Cryptol.Utils.FastString
 import Cryptol.Utils.PP
 import Cryptol.Utils.Panic
 
 import Data.Maybe(listToMaybe,fromMaybe)
 import Data.Bits(testBit,setBit)
 import Control.Monad(liftM,ap,unless)
+import qualified Data.Text as S
 import           Data.Text.Lazy (Text)
 import qualified Data.Text.Lazy as T
 
@@ -55,9 +58,9 @@ lexerP k = P $ \cfg p (S ts) ->
            UnterminatedComment -> "unterminated comment"
            UnterminatedString  -> "unterminated string"
            UnterminatedChar    -> "unterminated character"
-           InvalidString       -> "invalid string literal: " ++ T.unpack (tokenText it)
-           InvalidChar         -> "invalid character literal: " ++ T.unpack (tokenText it)
-           LexicalError        -> "unrecognized character: " ++ T.unpack (tokenText it)
+           InvalidString       -> "invalid string literal: " ++ fastString (tokenText it)
+           InvalidChar         -> "invalid character literal: " ++ fastString (tokenText it)
+           LexicalError        -> "unrecognized character: " ++ fastString (tokenText it)
       where it = thing t
 
     t : more -> unP (k t) cfg p (S more)
@@ -144,7 +147,7 @@ getNum l = case thing l of
              Token (ChrLit x) _  -> fromIntegral (fromEnum x)
              _ -> panic "[Parser] getNum" ["not a number:", show l]
 
-getStr :: Located Token -> String
+getStr :: Located Token -> FastString
 getStr l = case thing l of
              Token (StrLit x) _ -> x
              _ -> panic "[Parser] getStr" ["not a string:", show l]
@@ -181,7 +184,7 @@ mkTupleSel pos n
 
 fromStrLit :: Located Token -> ParseM (Located String)
 fromStrLit loc = case tokenType (thing loc) of
-  StrLit str -> return loc { thing = str }
+  StrLit str -> return loc { thing = fastString str }
   _          -> errorMessage (srcRange loc) "Expected a string literal"
 
 
@@ -370,33 +373,37 @@ mkPrimDecl mbDoc isInfix n sig =
 
 -- | Fix-up the documentation strings by removing the comment delimiters on each
 -- end, and stripping out common prefixes on all the remaining lines.
-mkDoc :: Located Text -> Located String
+mkDoc :: Located S.Text -> Located String
 mkDoc ltxt = ltxt { thing = docStr }
   where
 
+  docToksNL, docToks :: String
+  docToks   = "/* "
+  docToksNL = "/* \r\n\t"
+
   docStr = unlines
-         $ map T.unpack
+         $ map S.unpack
          $ dropPrefix
          $ trimFront
-         $ T.lines
-         $ T.dropWhileEnd (`elem` "/* \r\n\t")
+         $ S.lines
+         $ S.dropWhileEnd (`elem` docToksNL)
          $ thing ltxt
 
-  trimFront []                     = []
+  trimFront []                  = []
   trimFront (l:ls)
-    | T.all (`elem` "/* \r\n\t") l = ls
-    | otherwise                    = T.dropWhile (`elem` "/* ") l : ls
+    | S.all (`elem`docToksNL) l = ls
+    | otherwise                 = S.dropWhile (`elem` docToks) l : ls
 
   dropPrefix []        = []
-  dropPrefix [t]       = [T.dropWhile (`elem` "/* ") t]
+  dropPrefix [t]       = [S.dropWhile (`elem` docToks) t]
   dropPrefix ts@(l:ls) =
-    case T.uncons l of
-      Just (c,_) | all (commonPrefix c) ls -> dropPrefix (map (T.drop 1) ts)
+    case S.uncons l of
+      Just (c,_) | all (commonPrefix c) ls -> dropPrefix (map (S.drop 1) ts)
       _                                    -> ts
 
     where
     commonPrefix c t =
-      case T.uncons t of
+      case S.uncons t of
         Just (c',_) -> c == c'
         Nothing     -> False
 

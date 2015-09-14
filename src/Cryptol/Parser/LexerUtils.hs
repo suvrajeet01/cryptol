@@ -13,6 +13,7 @@ module Cryptol.Parser.LexerUtils where
 
 import Cryptol.Parser.Position
 import Cryptol.Parser.Unlit(PreProc(None))
+import Cryptol.Utils.FastString
 import Cryptol.Utils.PP
 import Cryptol.Utils.Panic
 
@@ -71,7 +72,7 @@ endComent cfg p txt s =
   where
   mkToken isDoc f cs =
     let r   = Range { from = f, to = moves p txt, source = cfgSource cfg }
-        str = T.concat $ reverse $ txt : cs
+        str = mkFastStringTextLazy $ T.concat $ reverse $ txt : cs
 
         tok = if isDoc then DocStr else BlockComment
     in Located { srcRange = r, thing = Token (White tok) str }
@@ -93,7 +94,7 @@ startEndComment cfg p txt s =
                                        , to     = moves p txt
                                        , source = cfgSource cfg
                                        }
-                    , thing = Token (White BlockComment) txt
+                    , thing = Token (White BlockComment) (mkFastStringTextLazy txt)
                     }
     InComment d p1 ps cs -> (Nothing, InComment d p1 ps (txt : cs))
     _ -> panic "[Lexer] startEndComment" ["in string or char?"]
@@ -107,7 +108,7 @@ endString cfg pe txt s = case s of
   _               -> panic "[Lexer] endString" ["outside string"]
   where
   parseStr s1 = case reads s1 of
-                  [(cs, "")] -> StrLit cs
+                  [(cs, "")] -> StrLit (mkFastString cs)
                   _          -> Err InvalidString
 
   mkToken ps str = Located { srcRange = Range
@@ -117,7 +118,7 @@ endString cfg pe txt s = case s of
                                }
                            , thing    = Token
                                { tokenType = parseStr (T.unpack tokStr)
-                               , tokenText = tokStr
+                               , tokenText = mkFastStringTextLazy tokStr
                                }
                            }
     where
@@ -151,7 +152,7 @@ endChar cfg pe txt s =
                                }
                            , thing    = Token
                                { tokenType = parseChar (T.unpack tokStr)
-                               , tokenText = tokStr
+                               , tokenText = mkFastStringTextLazy tokStr
                                }
                            }
     where
@@ -166,28 +167,33 @@ addToChar _ _ txt s = case s of
 
 
 mkIdent :: Action
-mkIdent cfg p s z = (Just Located { srcRange = r, thing = Token t s }, z)
+mkIdent cfg p s z = (Just Located { srcRange = r, thing = Token t str }, z)
   where
   r = Range { from = p, to = moves p s, source = cfgSource cfg }
-  t = Ident [] (T.unpack s)
+  t = Ident [] str
+  str = mkFastStringTextLazy s
 
 mkQualIdent :: Action
-mkQualIdent cfg p s z = (Just Located { srcRange = r, thing = Token t s}, z)
+mkQualIdent cfg p s z = (Just Located { srcRange = r, thing = Token t str}, z)
   where
   r = Range { from = p, to = moves p s, source = cfgSource cfg }
-  t = Ident (map T.unpack ns) (T.unpack i)
+  t = Ident (map mkFastStringTextLazy ns) (mkFastStringTextLazy i)
   (ns,i) = splitQual s
+  str = mkFastStringTextLazy s
 
 mkQualOp :: Action
-mkQualOp cfg p s z = (Just Located { srcRange = r, thing = Token t s}, z)
+mkQualOp cfg p s z = (Just Located { srcRange = r, thing = Token t str}, z)
   where
   r = Range { from = p, to = moves p s, source = cfgSource cfg }
-  t = Op (Other (map T.unpack ns) (T.unpack i))
+  t = Op (Other (map mkFastStringTextLazy ns) (mkFastStringTextLazy i))
   (ns,i) = splitQual s
+  str = mkFastStringTextLazy s
 
 emit :: TokenT -> Action
-emit t cfg p s z  = (Just Located { srcRange = r, thing = Token t s }, z)
-  where r = Range { from = p, to = moves p s, source = cfgSource cfg }
+emit t cfg p s z  = (Just Located { srcRange = r, thing = Token t str }, z)
+  where
+  r = Range { from = p, to = moves p s, source = cfgSource cfg }
+  str = mkFastStringTextLazy s
 
 
 emitS :: (String -> TokenT) -> Action
@@ -354,7 +360,7 @@ virt cfg pos x = Located { srcRange = Range
 
 --------------------------------------------------------------------------------
 
-data Token    = Token { tokenType :: TokenT, tokenText :: Text }
+data Token    = Token { tokenType :: TokenT, tokenText :: !FastString }
                 deriving (Show, Generic)
 
 instance NFData Token
@@ -411,7 +417,7 @@ instance NFData TokenKW
 data TokenOp  = Plus | Minus | Mul | Div | Exp | Mod
               | Equal | LEQ | GEQ
               | Complement | Hash
-              | Other [String] String
+              | Other [FastString] !FastString
                 deriving (Eq,Show,Generic)
 
 instance NFData TokenOp
@@ -448,8 +454,8 @@ instance NFData TokenErr
 
 data TokenT   = Num Integer Int Int   -- ^ value, base, number of digits
               | ChrLit  Char          -- ^ character literal
-              | Ident [String] String -- ^ (qualified) identifier
-              | StrLit String         -- ^ string literal
+              | Ident [FastString] !FastString -- ^ (qualified) identifier
+              | StrLit !FastString    -- ^ string literal
               | KW    TokenKW         -- ^ keyword
               | Op    TokenOp         -- ^ operator
               | Sym   TokenSym        -- ^ symbol
@@ -462,7 +468,7 @@ data TokenT   = Num Integer Int Int   -- ^ value, base, number of digits
 instance NFData TokenT
 
 instance PP Token where
-  ppPrec _ (Token _ s) = text (T.unpack s)
+  ppPrec p (Token _ s) = ppPrec p s
 
 
 -- | Collapse characters into a single Word8, identifying ASCII, and classes of

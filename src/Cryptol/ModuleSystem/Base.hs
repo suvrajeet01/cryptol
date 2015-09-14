@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 -- |
 -- Module      :  $Header$
 -- Copyright   :  (c) 2013-2015 Galois, Inc.
@@ -16,6 +18,7 @@ import Cryptol.ModuleSystem.Env (lookupModule, LoadedModule(..)
 import qualified Cryptol.Eval                 as E
 import qualified Cryptol.Eval.Value           as E
 import qualified Cryptol.ModuleSystem.Renamer as R
+import qualified Cryptol.ModuleSystem.Name    as R
 import qualified Cryptol.Parser               as P
 import qualified Cryptol.Parser.Unlit         as P
 import Cryptol.Parser.AST as P
@@ -204,7 +207,7 @@ importIfaces :: [P.Import] -> ModuleM IfaceDecls
 importIfaces is = foldMap ifPublic `fmap` mapM importIface is
 
 moduleFile :: ModName -> String -> FilePath
-moduleFile n = addExtension (joinPath (P.unModName n))
+moduleFile n = addExtension (joinPath (map R.unpack (P.unModName n)))
 
 -- | Discover a module.
 findModule :: ModName -> ModuleM FilePath

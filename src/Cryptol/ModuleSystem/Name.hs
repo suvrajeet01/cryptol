@@ -1,18 +1,19 @@
 {-# LANGUAGE DeriveGeneric #-}
 module Cryptol.ModuleSystem.Name where
 
+import Cryptol.Utils.FastString
+
 import GHC.Generics (Generic)
 import Control.DeepSeq
 
-import qualified Data.Text as Text
 
-type Ident = Text.Text
+type Ident = FastString
 
 pack :: String -> Ident
-pack = Text.pack
+pack = mkFastString
 
 unpack :: Ident -> String
-unpack = Text.unpack
+unpack = fastString
 
 -- | Module names are just namespaces.
 --
@@ -34,14 +35,14 @@ data QName    = QName (Maybe ModName) Name
 
 instance NFData QName
 
-unModName :: ModName -> [String]
-unModName (ModName ns) = map unpack ns
+unModName :: ModName -> [Ident]
+unModName (ModName ns) = ns
 
-mkModName :: [String] -> ModName
-mkModName ns = ModName (map pack ns)
+mkModName :: [Ident] -> ModName
+mkModName ns = ModName ns
 
-mkName :: String -> Name
-mkName n = Name (pack n)
+mkName :: FastString -> Name
+mkName n = Name n
 
 -- XXX It would be nice to also mark this as a name that doesn't need to be
 -- resolved, if it's going to be created before renaming.

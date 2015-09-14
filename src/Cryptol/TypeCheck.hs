@@ -6,6 +6,7 @@
 -- Stability   :  provisional
 -- Portability :  portable
 {-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Cryptol.TypeCheck
   ( tcModule

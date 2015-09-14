@@ -10,6 +10,7 @@
 {-# LANGUAGE PatternGuards #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Cryptol.Symbolic.Prims where
 
 import Data.List (genericDrop, genericReplicate, genericSplitAt, genericTake, sortBy, transpose)

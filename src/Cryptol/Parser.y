@@ -1,5 +1,6 @@
 {
 {-# LANGUAGE Trustworthy #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Cryptol.Parser
   ( parseModule
   , parseProgram, parseProgramWith
@@ -28,6 +29,7 @@ import Cryptol.Parser.Position
 import Cryptol.Parser.LexerUtils
 import Cryptol.Parser.ParserUtils
 import Cryptol.Parser.Unlit(PreProc(..), guessPreProc)
+import Cryptol.Utils.FastString
 
 
 import Paths_cryptol
@@ -248,7 +250,7 @@ prim_bind               :: { [TopDecl] }
   | mbDoc 'primitive' '(' op ')' ':' schema  { mkPrimDecl $1 True  $4 $7 }
 
 doc                     :: { Located String }
-  : DOC                    { mkDoc (fmap tokenText $1) }
+  : DOC                    { mkDoc (fmap (fastStringText . tokenText) $1) }
 
 mbDoc                   :: { Maybe (Located String) }
   : doc                    { Just $1 }

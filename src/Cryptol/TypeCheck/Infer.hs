@@ -12,6 +12,7 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE PatternGuards #-}
 {-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE OverloadedStrings #-}
 #if __GLASGOW_HASKELL__ >= 706
 {-# LANGUAGE RecursiveDo #-}
 #else
@@ -32,6 +33,7 @@ import           Cryptol.TypeCheck.Instantiate
 import           Cryptol.TypeCheck.Depends
 import           Cryptol.TypeCheck.Subst (listSubst,apSubst,fvs,(@@))
 import           Cryptol.TypeCheck.Solver.InfNat(genLog)
+import           Cryptol.Utils.FastString
 import           Cryptol.Utils.Panic(panic)
 import           Cryptol.Utils.PP
 
@@ -90,7 +92,7 @@ desugarLiteral fixDec lit =
 
        P.ECString s ->
           P.ETyped (P.EList [ P.ELit (P.ECNum (fromIntegral (fromEnum c))
-                            P.CharLit) | c <- s ])
+                            P.CharLit) | c <- fastString s ])
                    (P.TSeq P.TWild (P.TSeq (P.TNum 8) P.TBit))
 
 

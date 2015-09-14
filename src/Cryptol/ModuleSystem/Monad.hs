@@ -8,6 +8,7 @@
 
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Cryptol.ModuleSystem.Monad where
 
 import           Cryptol.Eval.Env (EvalEnv)

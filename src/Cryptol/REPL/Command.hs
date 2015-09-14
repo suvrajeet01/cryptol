@@ -7,6 +7,7 @@
 -- Portability :  portable
 
 {-# LANGUAGE CPP, PatternGuards, FlexibleContexts, RecordWildCards #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Cryptol.REPL.Command (
     -- * Commands
     Command(..), CommandDescr(..), CommandBody(..)
@@ -65,6 +66,7 @@ import qualified Cryptol.TypeCheck.Subst as T
 import qualified Cryptol.TypeCheck.InferTypes as T
 import           Cryptol.TypeCheck.Solve(defaultReplExpr)
 import Cryptol.TypeCheck.PP (dump,ppWithNames)
+import Cryptol.Utils.FastString
 import Cryptol.Utils.PP
 import Cryptol.Utils.Panic(panic)
 import qualified Cryptol.Parser.AST as P
@@ -493,7 +495,7 @@ mkSolverResult thing result earg = (rty, re)
       where
         go [] fs _ = fs
         go ((t, e):tes') fs n = go tes' (((argName, t), (argName, e)):fs) (n+1)
-          where argName = T.mkName ("arg" ++ show n)
+          where argName = T.mkName (mkFastString ("arg" ++ show n))
     argF = case earg of
       Left ts -> mkArgs $ (map addError) ts
         where addError t = (t, T.eError t ("no " ++ thing ++ " available"))

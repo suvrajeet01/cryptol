@@ -15,6 +15,7 @@ module Cryptol.Parser.Lexer
 import Cryptol.Parser.Position
 import Cryptol.Parser.LexerUtils
 import Cryptol.Parser.Unlit(unLit)
+import Cryptol.Utils.FastString (mkFastStringTextLazy,mkFastString)
 import Data.Text.Lazy (Text)
 import qualified Data.Text.Lazy as Text
 }
@@ -156,7 +157,7 @@ $white+                   { emit $ White Space }
 "~"                       { emit  (Op   Complement) }
 
 -- all other operators
-@op                       { emitS (Op . Other []) }
+@op                       { emitS (Op . Other [] . mkFastString) }
 }
 
 
@@ -221,7 +222,7 @@ primLexer cfg cs = run inp Normal
               , alexPos i)
 
       AlexError i'  ->
-          let bad = Text.take 1 (input i)
+          let bad = mkFastStringTextLazy (Text.take 1 (input i))
           in
           ( [ Located (Range (alexPos i) (alexPos i') (cfgSource cfg))
                $ Token (Err LexicalError) bad ]

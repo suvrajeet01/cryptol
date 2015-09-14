@@ -13,6 +13,8 @@
 {-# LANGUAGE DeriveFoldable #-}
 {-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE OverloadedStrings #-}
+
 module Cryptol.Parser.AST
   ( -- * Names
     ModName(..), {-splitNamespace, parseModName, nsChar,-} modRange
@@ -70,6 +72,7 @@ module Cryptol.Parser.AST
 import Cryptol.ModuleSystem.Name
 import Cryptol.Parser.Position
 import Cryptol.Prims.Syntax
+import Cryptol.Utils.FastString
 import Cryptol.Utils.PP
 import Cryptol.Utils.Panic (panic)
 
@@ -300,7 +303,7 @@ instance NFData NumInfo
 
 -- | Literals.
 data Literal  = ECNum Integer NumInfo           -- ^ @0x10@  (HexLit 2)
-              | ECString String                 -- ^ @\"hello\"@
+              | ECString FastString             -- ^ @\"hello\"@
                 deriving (Eq,Show,Generic)
 
 instance NFData Literal

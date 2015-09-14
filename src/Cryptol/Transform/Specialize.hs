@@ -15,6 +15,7 @@ import Cryptol.TypeCheck.Subst
 import qualified Cryptol.ModuleSystem as M
 import qualified Cryptol.ModuleSystem.Env as M
 import qualified Cryptol.ModuleSystem.Monad as M
+import Cryptol.Utils.FastString
 import Cryptol.ModuleSystem.Name (unpack)
 
 import Data.List (intercalate)
@@ -242,7 +243,7 @@ freshName (QName m name) tys = do
   let go = if name' `elem` bNames
                then loop (1 :: Integer)
                else name'
-  return $ QName m (mkName go)
+  return $ QName m $ mkName $ mkFastString go
 
 matchingBoundNames :: (Maybe ModName) -> SpecM [String]
 matchingBoundNames m = do

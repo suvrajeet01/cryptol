@@ -11,6 +11,8 @@
 {-# LANGUAGE PatternGuards                       #-}
 {-# LANGUAGE FlexibleInstances, FlexibleContexts #-}
 {-# LANGUAGE DeriveGeneric                       #-}
+{-# LANGUAGE OverloadedStrings                   #-}
+
 module Cryptol.TypeCheck.AST
   ( module Cryptol.TypeCheck.AST
   , TFun(..)
@@ -33,6 +35,7 @@ import Cryptol.Parser.AST ( Name(..), Selector(..),Pragma(..), ppSelector
                           , isExportedType, QName(..), mkUnqual, unqual
                           , mkModName
                           , Fixity(..) )
+import Cryptol.Utils.FastString
 import Cryptol.Utils.Panic(panic)
 import Cryptol.TypeCheck.PP
 import Cryptol.TypeCheck.Solver.InfNat
@@ -435,7 +438,7 @@ tNat' n'  = case n' of
 tBit     :: Type
 tBit      = TCon (TC TCBit) []
 
-ePrim    :: String -> Expr
+ePrim    :: FastString -> Expr
 ePrim n   = EVar (mkQual (mkModName ["Cryptol"]) (mkName n))
 
 eTrue    :: Expr

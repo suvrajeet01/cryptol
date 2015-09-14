@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 -- |
 -- Module      :  $Header$
 -- Copyright   :  (c) 2013-2015 Galois, Inc.

@@ -12,11 +12,13 @@
 module Cryptol.Utils.PP where
 
 import           Cryptol.ModuleSystem.Name
+import           Cryptol.Utils.FastString
 
 import           Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import qualified Data.Monoid as M
 import           Data.String (IsString(..))
+import qualified Data.Text as T
 import qualified Text.PrettyPrint as PJ
 
 import GHC.Generics (Generic)
@@ -216,6 +218,14 @@ empty  = liftPJ PJ.empty
 
 colon :: Doc
 colon  = liftPJ PJ.colon
+
+instance PP T.Text where
+  ppPrec _ str = text (T.unpack str)
+  {-# INLINE ppPrec #-}
+
+instance PP FastString where
+  ppPrec _ str = text (fastString str)
+  {-# INLINE ppPrec #-}
 
 
 -- Names -----------------------------------------------------------------------

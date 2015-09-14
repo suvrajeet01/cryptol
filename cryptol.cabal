@@ -87,6 +87,7 @@ library
                        Cryptol.Parser.Utils,
                        Cryptol.Parser.Unlit,
 
+                       Cryptol.Utils.FastString,
                        Cryptol.Utils.PP,
                        Cryptol.Utils.Panic,
                        Cryptol.Utils.Debug,

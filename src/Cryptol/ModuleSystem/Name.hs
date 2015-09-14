@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Cryptol.ModuleSystem.Name where
 
 import Cryptol.Utils.FastString
@@ -31,7 +32,17 @@ data Name     = Name Ident
 instance NFData Name
 
 data QName    = QName (Maybe ModName) Name
-               deriving (Eq,Ord,Show,Generic)
+               deriving (Show,Generic)
+
+instance Eq QName where
+  QName mb1 n1 == QName mb2 n2 = n1 == n2 && mb1 == mb2
+  QName mb1 n1 /= QName mb2 n2 = n1 /= n2 && mb1 /= mb2
+
+instance Ord QName where
+  compare (QName mb1 n1) (QName mb2 n2) =
+    case compare n1 n2 of
+      EQ -> compare mb1 mb2
+      r  -> r
 
 instance NFData QName
 
@@ -41,17 +52,21 @@ unModName (ModName ns) = ns
 mkModName :: [Ident] -> ModName
 mkModName ns = ModName ns
 
+preludeName :: ModName
+preludeName  = mkModName [mkFastStringText "Cryptol"]
+{-# NOINLINE preludeName #-}
+
 mkName :: FastString -> Name
 mkName n = Name n
 
 -- XXX It would be nice to also mark this as a name that doesn't need to be
 -- resolved, if it's going to be created before renaming.
 mkPrim :: String -> QName
-mkPrim n = mkQual (ModName [pack "Cryptol"]) (Name (pack n))
+mkPrim n = mkQual preludeName (Name (pack n))
 
 asPrim :: QName -> Maybe String
-asPrim (QName (Just (ModName [m])) (Name n))
-  | m == pack "Cryptol" = Just (unpack n)
+asPrim (QName (Just m) (Name n))
+  | m == preludeName = Just (unpack n)
 asPrim _ = Nothing
 
 mkQual :: ModName -> Name -> QName

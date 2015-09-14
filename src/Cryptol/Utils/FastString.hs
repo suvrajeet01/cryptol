@@ -21,7 +21,6 @@ import           Data.Array.Unsafe (unsafeFreeze)
 import           Data.Bits (shiftL)
 import           Data.Char (ord)
 import           Data.Foldable (forM_)
-import           Data.Function(on)
 import           Data.IORef (IORef,newIORef,readIORef,atomicModifyIORef')
 import           Data.Ix (range)
 import           Data.List (find,elemIndex)
@@ -77,14 +76,14 @@ data FastString =
              } deriving (Generic)
 
 instance Eq FastString where
-  (==) = (==) `on` fsUnique
+  a == b = fsUnique a == fsUnique b
   {-# INLINE (==) #-}
 
-  (/=) = (/=) `on` fsUnique
+  a /= b = fsUnique a /= fsUnique b
   {-# INLINE (/=) #-}
 
 instance Ord FastString where
-  compare = compare `on` fsUnique
+  compare a b = compare (fsUnique a) (fsUnique b)
   {-# INLINE compare #-}
 
 instance Show FastString where

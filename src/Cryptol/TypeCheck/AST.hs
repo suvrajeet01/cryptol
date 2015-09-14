@@ -27,7 +27,7 @@ module Cryptol.TypeCheck.AST
   , Fixity(..)
   ) where
 
-import Cryptol.ModuleSystem.Name (mkQual, mkName)
+import Cryptol.ModuleSystem.Name (mkQual, mkName, preludeName)
 import Cryptol.Prims.Syntax
 import Cryptol.Parser.AST ( Name(..), Selector(..),Pragma(..), ppSelector
                           , Import(..), ImportSpec(..), ExportType(..)
@@ -439,7 +439,7 @@ tBit     :: Type
 tBit      = TCon (TC TCBit) []
 
 ePrim    :: FastString -> Expr
-ePrim n   = EVar (mkQual (mkModName ["Cryptol"]) (mkName n))
+ePrim n   = EVar (mkQual preludeName (mkName n))
 
 eTrue    :: Expr
 eTrue     = ePrim "True"

@@ -67,6 +67,8 @@ instance ToJSON E.Value where
       [ "function" .= object [ "@note" .= "functions not supported" ] ]
     E.VPoly _ -> object
       [ "poly" .= object [ "@note" .= "polymorphic values not supported" ] ]
+    E.VNumPoly _ -> object
+      [ "vnumpoly" .= object [ "@note" .= "polymorphic values not supported" ] ]
 
 instance FromJSON E.Value where
   parseJSON = withObject "Value" $ \o ->

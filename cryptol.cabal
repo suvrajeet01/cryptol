@@ -35,7 +35,7 @@ flag relocatable
   description: Don't use the Cabal-provided data directory for looking up Cryptol libraries. This is useful when the data directory can't be known ahead of time, like for a relocatable distribution.
 
 flag server
-  default: False
+  default: True
   description: Build with the ZeroMQ/JSON cryptol-server executable
 
 library
@@ -220,7 +220,7 @@ executable cryptol-server
   if os(linux) && flag(static)
       ld-options:      -static -pthread
   if flag(server)
-     build-depends: aeson >= 0.10
+     build-depends: aeson >= 0.10 && < 1.0
                   , aeson-pretty >= 0.7
                   , base
                   , base-compat

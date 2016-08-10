@@ -93,10 +93,10 @@ newtype FunHandle = FH Int
   deriving (Eq, Ord, Enum, Bounded, Show)
 
 instance ToJSON FunHandle where
-  toJSON (FH i) = toJSON i
+  toJSON (FH i) = toJSON (show i)
 
 instance FromJSON FunHandle where
-  parseJSON v = FH <$> parseJSON v
+  parseJSON v = FH . read <$> parseJSON v
 
 data RResult
   = RRValue E.Value

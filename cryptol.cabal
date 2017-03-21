@@ -61,7 +61,7 @@ library
                        process           >= 1.2,
                        QuickCheck        >= 2.7,
                        random            >= 1.0.1,
-                       sbv               >= 5.12,
+                       sbv               >= 5.12 && < 5.15,
                        smtLib            >= 1.0.7,
                        simple-smt        >= 0.6.0,
                        syb               >= 0.4,
@@ -196,7 +196,7 @@ executable cryptol
                      , monad-control
                      , process
                      , random
-                     , sbv
+                     , sbv >= 5.12 && < 5.15
                      , tf-random
                      , transformers
   GHC-options:         -Wall -O2 -threaded -rtsopts -with-rtsopts=-N1

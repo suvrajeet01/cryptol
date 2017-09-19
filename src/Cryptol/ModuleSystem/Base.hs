@@ -169,7 +169,7 @@ loadModule path pm = do
   loadDeps pm'
 
   -- XXX make it possible to configure output
-  io (putStrLn ("Loading module " ++ pretty (P.thing (P.mName pm'))))
+  --io (putStrLn ("Loading module " ++ pretty (P.thing (P.mName pm'))))
 
   tcm <- checkModule path pm'
 

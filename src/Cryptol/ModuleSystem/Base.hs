@@ -281,6 +281,7 @@ addPrelude m
       { iModule    = preludeName
       , iAs        = Nothing
       , iSpec      = Nothing
+      , iWhere     = []
       }
     }
 
@@ -291,7 +292,9 @@ loadDeps m =
      mapM_ loadF (P.mInstance m)
   where
   loadI i = do (_,m1)  <- loadModuleFrom (FromImport i)
-               when (T.isParametrizedModule m1) $ importParamModule $ T.mName m1
+               when (T.isParametrizedModule m1) $
+                  -- XXX: OK, as long as we have instantiated OK
+                   importParamModule $ T.mName m1
   loadF f = do _ <- loadModuleFrom (FromModuleInstance f)
                return ()
 

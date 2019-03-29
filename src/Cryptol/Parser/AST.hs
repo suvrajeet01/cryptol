@@ -111,7 +111,7 @@ newtype Program name = Program [TopDecl name]
 data Module name = Module
   { mName     :: Located ModName            -- ^ Name of the module
   , mInstance :: !(Maybe (Located ModName)) -- ^ Functor to instantiate
-                                            -- (if this is a functor instnaces)
+                                            -- (if this is a functor instnace)
   , mImports  :: [Located Import]           -- ^ Imports for the module
   , mDecls    :: [TopDecl name]             -- ^ Declartions for the module
   } deriving (Show, Generic, NFData)
@@ -169,6 +169,7 @@ data ParameterFun name = ParameterFun
 data Import = Import { iModule    :: !ModName
                      , iAs        :: Maybe ModName
                      , iSpec      :: Maybe ImportSpec
+                     , iWhere     :: [Decl PName]
                      } deriving (Eq, Show, Generic, NFData)
 
 -- | The list of names following an import.

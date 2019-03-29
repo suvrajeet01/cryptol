@@ -173,7 +173,7 @@ vimports                   :: { [Located Import] }
 
 -- XXX replace rComb with uses of at
 import                     :: { Located Import }
-  : 'import' modName mbAs mbImportSpec
+  : 'import' modName mbAs mbImportSpec optWhere
                               { Located { srcRange = rComb $1
                                                    $ fromMaybe (srcRange $2)
                                                    $ msum [ fmap srcRange $4
@@ -183,8 +183,16 @@ import                     :: { Located Import }
                                           { iModule    = thing $2
                                           , iAs        = fmap thing $3
                                           , iSpec      = fmap thing $4
+                                          , iWhere     = $5
                                           }
                                         } }
+
+optWhere ::  { [Decl PName] }
+  : 'where' '{' '}'            { [] }
+  | 'where' '{' decls '}'      { [] }
+  | 'where' 'v{' 'v}'          { [] }
+  | 'where' 'v{' vdecls 'v}'   { $3 }
+  | {- empty -}                { [] }
 
 mbAs                       :: { Maybe (Located ModName) }
   : 'as' modName              { Just $2 }

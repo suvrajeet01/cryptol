@@ -1,0 +1,24 @@
+module Cryptol::Float where
+
+
+/** The type of real numbers. */
+primitive type Real : *
+
+/** Floating point numbers. */
+primitive type {exponent : #, significand : #}
+  (exponent >= 1, significand >= 1) =>
+  FloatingPoint exponent significand : *
+
+/** An abbreviation for common 16-bit floating point numbers. */
+type Float16  = FloatingPoint 5   11
+
+/** An abbreviation for common 32-bit floating point numbers. */
+type Float32  = FloatingPoint 8   24
+
+/** An abbreviation for common 64-bit floating point numbers. */
+type Float64  = FloatingPoint 11  53
+
+/** An abbreviation for common 128-bit floating point numbers. */
+type Float128 = FloatingPoint 15 113
+
+

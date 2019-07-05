@@ -41,12 +41,12 @@ import qualified Cryptol.TypeCheck.Sanity as TcSanity
 import Cryptol.Transform.AddModParams (addModParams)
 import Cryptol.Utils.Ident (preludeName, interactiveName
                            , modNameChunks, notParamInstModName
-                           , isParamInstModName )
+                           , isParamInstModName, modNameToText )
 import Cryptol.Utils.PP (pretty)
 import Cryptol.Utils.Panic (panic)
 import Cryptol.Utils.Logger(logPutStrLn, logPrint)
 
-import Cryptol.Prelude (preludeContents)
+import Cryptol.Prelude (builtInModules)
 
 import Cryptol.Transform.MonoValues (rewModule)
 
@@ -56,6 +56,7 @@ import qualified Data.ByteString as B
 import Data.Maybe (fromMaybe)
 import Data.Monoid ((<>))
 import Data.Text.Encoding (decodeUtf8')
+import qualified Data.Text as Text
 import System.Directory (doesFileExist, canonicalizePath)
 import System.FilePath ( addExtension
                        , isAbsolute
@@ -252,9 +253,9 @@ findModule n = do
     [] -> handleNotFound
 
   handleNotFound =
-    case n of
-      m | m == preludeName -> pure (InMem "Cryptol" preludeContents)
-      _ -> moduleNotFound n =<< getSearchPath
+    case Map.lookup n builtInModules of
+      Just bytes -> pure (InMem (Text.unpack (modNameToText n)) bytes)
+      _          -> moduleNotFound n =<< getSearchPath
 
   -- generate all possible search paths
   possibleFiles paths = do

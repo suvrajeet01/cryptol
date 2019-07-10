@@ -29,6 +29,8 @@ import Control.DeepSeq
 data TValue
   = TVBit                     -- ^ @ Bit @
   | TVInteger                 -- ^ @ Integer @
+  | TVReal                    -- ^ @ Real @
+  | TVFloat Integer Integer   -- ^ @ Float s e@
   | TVIntMod Integer          -- ^ @ Z n @
   | TVSeq Integer TValue      -- ^ @ [n]a @
   | TVStream TValue           -- ^ @ [inf]t @
@@ -45,6 +47,7 @@ tValTy tv =
     TVBit       -> tBit
     TVInteger   -> tInteger
     TVIntMod n  -> tIntMod (tNum n)
+    TVFloat s e -> tFloat (tNum s) (tNum e)
     TVSeq n t   -> tSeq (tNum n) (tValTy t)
     TVStream t  -> tSeq tInf (tValTy t)
     TVTuple ts  -> tTuple (map tValTy ts)
@@ -105,6 +108,11 @@ evalType env ty =
         (TCIntMod, [n]) -> case num n of
                              Inf   -> evalPanic "evalType" ["invalid type Z inf"]
                              Nat m -> Right $ TVIntMod m
+        (TCReal, [])    -> Right TVReal
+        (TCFloat, [s,e]) -> case (num s, num e) of
+                              (Nat s', Nat e') -> Right (TVFloat s' e')
+                              _ -> evalPanic "evalType"
+                                    ["`inf` argument to `Float`"]
         (TCSeq, [n, t]) -> Right $ tvSeq (num n) (val t)
         (TCFun, [a, b]) -> Right $ TVFun (val a) (val b)
         (TCTuple _, _)  -> Right $ TVTuple (map val ts)

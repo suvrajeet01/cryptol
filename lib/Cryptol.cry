@@ -859,5 +859,208 @@ iterate : {a} (a -> a) -> a -> [inf]a
 iterate f x = [x] # [ f v | v <- iterate f x ]
 
 
+// -----------------------------------------------------------------------------
+// Reals and Float Point
+// -----------------------------------------------------------------------------
+
+
+/** The type of real numbers. */
+primitive type Real : *
+
+type constraint ValidFloat m n = (fin m, fin n, m >= 1, n >= 1)
+
+/** IEEE-754 floating point numbers. */
+primitive type { mantissa : #, exponent : #}
+  ValidFloat mantissa exponent => Float mantissa exponent : *
+
+/** An abbreviation for common 16-bit floating point numbers. */
+type Float16  = Float 11 5
+
+/** An abbreviation for common 32-bit floating point numbers. */
+type Float32  = Float 24 8
+
+/** An abbreviation for common 64-bit floating point numbers. */
+type Float64  = Float 53 11
+
+/** An abbreviation for common 128-bit floating point numbers. */
+type Float128 = Float 113 15
+
+/** An abbreviation for common 256-bit floating point numbers. */
+type Float256 = Float 237 19
+
+
+
+
+/** Standard rounding modes. */
+type RoundingMode = [3]
+
+/** Round toward nearest, ties go to even. */
+roundNearestEven, rne : RoundingMode
+roundNearestEven = 0
+rne              = roundNearestEven
+
+/** Round toward nearest, ties away from zero. */
+roundNearestAway, rna : RoundingMode
+roundNearestAway  = 1
+rna               = roundNearestAway
+
+/** Round toward positive infinity. */
+roundPositive, rtp : RoundingMode
+roundPositive     = 2
+rtp               = roundPositive
+
+/** Round toward negative infinity. */
+roundNegative, rtn : RoundingMode
+roundNegative     = 3
+rtn               = roundNegative
+
+/** Round toward zero. */
+roundZero, rtz : RoundingMode
+roundZero         = 4
+rtz               = roundZero
+
+
+/** A floating point number using the exact bit pattern. */
+primitive
+  fp : {m,n} ValidFloat (m+1) n => Bit -> [m] -> [n] -> Float (m + 1) n
+
+/** Convert a bit-pattern into a floating point number. */
+primitive
+  fpFromBits : {m,n} ValidFloat m n => [m + n] -> Float m n
+
+/** Change the precision of a floating point number. */
+primitive
+  fpFromFloat : {m,n, p,q} (ValidFloat m n, ValidFloat p q) =>
+    RoundingMode -> Float m n -> Float p q
+
+/** Conver a real to a floating point number, using the given rounding mode. */
+primitive
+  fpFromReal : {m,n} ValidFloat m n => RoundingMode -> Real -> Float m n
+
+/** Convert 2s complement integer into a floating point number. */
+primitive
+  fpFromSignedInt : {i,m,n} ValidFloat m n => RoundingMode -> [i] -> Float m n
+
+
+/** Convert an unsigned integer into a floating point number. */
+primitive
+  fpFromUnsignedInt : {i,m,n} ValidFloat m n => RoundingMode -> [i] -> Float m n
+
+/** Convert a float into an unsigned machine integer.
+Undefined for infinities.
+Also undefined for numbers that do not fit in the result type.
+(e.g., negative numbers). */
+primitive
+  fpToUnsignedInt : {i,m,n} ValidFloat m n => RoundingMode -> Float m n -> [i]
+
+/** Convert a float into a 2s complement signed machine integer.
+Undefined for infinities, NaN, and numbers out of range.
+Also undefined for numbers that do not fit in the result type.
+ */
+primitive
+  fpToSignedInt : {i,m,n} ValidFloat m n => RoundingMode -> Float m n -> [i]
+
+/** Convert a float into a 2s complement signed machine integer.
+Undefined for infinities and NaN */
+primitive
+  fpToReal : {m,n} ValidFloat m n => Float m n -> Real
+
+
+
+
+
+
+/** Positive infinity. */
+primitive
+  fpPosInf : {m,n} ValidFloat m n => Float m n
+
+/** Negaitve infinity. */
+fpNegInf : {m,n} ValidFloat m n => Float m n
+fpNegInf = negate fpPosInf
+
+/** Not a number. */
+primitive
+  fpNaN : {m,n} ValidFloat m n => Float m n
+
+
+/** Absolute value. */
+primitive
+  fpAbs : {m,n} ValidFloat m n => Float m n -> Float m n
+
+// negate
+
+/** Add floating point numbers using the given rounding mode. */
+primitive
+  fpAdd : {m,n} ValidFloat m n =>
+    RoundingMode -> Float m n -> Float m n -> Float m n
+
+/** Subtract floating point numbers using the given rounding mode. */
+primitive
+  fpSub : {m,n} ValidFloat m n =>
+    RoundingMode -> Float m n -> Float m n -> Float m n
+
+/** Multiply floating point numbers using the given rounding mode. */
+primitive
+  fpMul : {m,n} ValidFloat m n =>
+    RoundingMode -> Float m n -> Float m n -> Float m n
+
+/** Divide floating point numbers using the given rounding mode. */
+primitive
+  fpDiv : {m,n} ValidFloat m n =>
+    RoundingMode -> Float m n -> Float m n -> Float m n
+
+/** `fpMulAdd r x y z` performs `x * y + z` and rounds after */
+primitive
+  fpMulAdd : {m,n} ValidFloat m n =>
+    RoundingMode -> Float m n -> Float m n -> Float m n -> Float m n
+
+/** Compute the square root of the inputm, using the given rounding mode. */
+primitive
+  fpSqrt : {m,n} ValidFloat m n =>
+    RoundingMode -> Float m n -> Float m n
+
+// `rem` is `(%)
+//  x - y * n, where n in Z is nearest to x/y
+
+/** Round to an integral number */
+primitive
+  fpRound : {m,n} ValidFloat m n =>
+    RoundingMode -> Float m n -> Float m n
+
+/** The smaller of two floats. */
+primitive
+  fpMin : {m,n} ValidFloat m n =>
+    Float m n -> Float m n -> Float m n
+
+/** The larger of two floats. */
+primitive
+  fpMax : {m,n} ValidFloat m n =>
+    Float m n -> Float m n -> Float m n
+
+// leq,let,geq,gt,eq from Cmp class
+
+/** Is this float in normal form. */
+primitive fpIsNormal : {m,n} ValidFloat m n => Float m n -> Bool
+
+/** Is this float denormalized. */
+primitive fpIsSubNormal : {m,n} ValidFloat m n => Float m n -> Bool
+
+/** Is this float a zero */
+primitive fpIsZero : {m,n} ValidFloat m n => Float m n -> Bool
+
+/** Is this float an infinity */
+primitive fpIsInf : {m,n} ValidFloat m n => Float m n -> Bool
+
+/** Is this float NaN */
+primitive fpIsNaN : {m,n} ValidFloat m n => Float m n -> Bool
+
+/** Is this float negative */
+primitive fpIsNegative : {m,n} ValidFloat m n => Float m n -> Bool
+
+/** Is this float positive */
+primitive fpIsPositive : {m,n} ValidFloat m n => Float m n -> Bool
+
+
+
 
 

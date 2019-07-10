@@ -477,8 +477,16 @@ tBit      = TCon (TC TCBit) []
 tInteger :: Type
 tInteger  = TCon (TC TCInteger) []
 
+tReal :: Type
+tReal     = TCon (TC TCReal) []
+
 tIntMod :: Type -> Type
 tIntMod n = TCon (TC TCIntMod) [n]
+
+-- | If you use this, make sure that the input types satisfy the types
+-- requirements (i.e., they are finite and at least 1)
+tFloat :: Type -> Type -> Type
+tFloat s e = TCon (TC TCFloat) [s,e]
 
 tWord    :: Type -> Type
 tWord a   = tSeq a tBit

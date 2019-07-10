@@ -93,6 +93,8 @@ typeSize ty =
                               TCon (TC (TCNum n)) _ -> Just n
                               _                     -> Nothing
         (TCIntMod, _)    -> Nothing
+        (TCReal, _)      -> Nothing
+        (TCFloat, _)     -> Nothing -- XXX: we could do this...
         (TCSeq, [sz,el]) -> case tNoUser sz of
                               TCon (TC (TCNum n)) _ -> (^ n) <$> typeSize el
                               _                     -> Nothing
@@ -137,6 +139,9 @@ typeValues ty =
               | xs <- sequence $ genericReplicate n
                                $ typeValues t ]
             _ -> []
+
+        TCReal -> []
+        TCFloat -> []     -- XXX: probably could do some of these.
 
 
         TCFun       -> []  -- We don't generate function values.

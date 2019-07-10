@@ -15,19 +15,17 @@
 
 module Cryptol.Prelude (builtInModules,cryptolTcContents) where
 
-
 import Data.ByteString(ByteString)
 import qualified Data.ByteString.Char8 as B
 import Text.Heredoc (there)
 import Data.Map (Map)
 import qualified Data.Map as Map
 
-import Cryptol.Utils.Ident(ModName,preludeName,textToModName)
+import Cryptol.Utils.Ident(ModName,preludeName)
 
 builtInModules :: Map ModName ByteString
 builtInModules = Map.fromList
   [ (preludeName, B.pack [there|lib/Cryptol.cry|])
-  , (textToModName "Cryptol::Float", B.pack [there|lib/Cryptol/Float.cry|])
   ]
 
 cryptolTcContents :: String

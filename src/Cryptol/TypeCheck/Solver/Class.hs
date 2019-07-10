@@ -35,6 +35,9 @@ classStep p = case tNoUser p of
   TCon (PC PCmp) [ty]   -> solveCmpInst   (tNoUser ty)
   _                     -> Unsolved
 
+posNat :: Type -> [ Prop ]
+posNat n = [ pFin n, n >== tOne ]
+
 -- | Solve a Zero constraint by instance, if possible.
 solveZeroInst :: Type -> Solved
 solveZeroInst ty = case tNoUser ty of
@@ -48,8 +51,14 @@ solveZeroInst ty = case tNoUser ty of
   -- Zero Integer
   TCon (TC TCInteger) [] -> SolvedIf []
 
-  -- Zero (Z n)
-  TCon (TC TCIntMod) [n] -> SolvedIf [ pFin n, n >== tOne ]
+  -- PosNat n => Zero (Z n)
+  TCon (TC TCIntMod) [n] -> SolvedIf (posNat n)
+
+  -- Zero Real
+  TCon (TC TCReal) [] -> SolvedIf []
+
+  -- (PosNat s, PosNat e) => Zero (Float s e)
+  TCon (TC TCFloat) [s,e] -> SolvedIf (posNat s ++ posNat e)
 
   -- Zero a => Zero [n]a
   TCon (TC TCSeq) [_, a] -> SolvedIf [ pZero a ]
@@ -112,8 +121,14 @@ solveArithInst ty = case tNoUser ty of
   -- Arith Integer
   TCon (TC TCInteger) [] -> SolvedIf []
 
-  -- Arith (Z n)
-  TCon (TC TCIntMod) [n] -> SolvedIf [ pFin n, n >== tOne ]
+  -- (PosNat n) => Arith (Z n)
+  TCon (TC TCIntMod) [n] -> SolvedIf (posNat n)
+
+  -- Arith Real
+  TCon (TC TCReal) [] -> SolvedIf []
+
+  -- (PosNat s, PosNat t) => Arith (Float s e)
+  TCon (TC TCFloat) [s,e] -> SolvedIf (posNat s ++ posNat e)
 
   -- (Arith a, Arith b) => Arith { x1 : a, x2 : b }
   TRec fs -> SolvedIf [ pArith ety | (_,ety) <- fs ]
@@ -153,8 +168,14 @@ solveCmpInst ty = case tNoUser ty of
   -- Cmp Integer
   TCon (TC TCInteger) [] -> SolvedIf []
 
-  -- Cmp (Z n)
-  TCon (TC TCIntMod) [n] -> SolvedIf [ pFin n, n >== tOne ]
+  -- PosNat n => Cmp (Z n)
+  TCon (TC TCIntMod) [n] -> SolvedIf (posNat n)
+
+  -- Cmp Real
+  TCon (TC TCReal) [] -> SolvedIf []
+
+  -- (PosNat s, PosNat e) => Cmp (Float s e)
+  TCon (TC TCFloat) [s,e] -> SolvedIf (posNat s ++ posNat e)
 
   -- (fin n, Cmp a) => Cmp [n]a
   TCon (TC TCSeq) [n,a] -> SolvedIf [ pFin n, pCmp a ]
@@ -229,6 +250,9 @@ solveLiteralInst val ty
       -- (fin val, fin m, m >= val + 1) => Literal val (Z m)
       TCon (TC TCIntMod) [modulus] ->
         SolvedIf [ pFin val, pFin modulus, modulus >== tAdd val tOne ]
+
+      -- fin val => Literal val Real
+      TCon (TC TCReal) [] -> SolvedIf [ pFin val ]
 
       -- (fin bits, bits => width n) => Literal n [bits]
       TCon (TC TCSeq) [bits, elTy]

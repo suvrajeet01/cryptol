@@ -51,7 +51,7 @@ import Prelude.Compat
 
 import Data.Time (NominalDiffTime)
 
-type EvalEnv = GenEvalEnv SBool SWord
+type EvalEnv = GenEvalEnv EvalSym
 
 
 -- External interface ----------------------------------------------------------

@@ -62,7 +62,7 @@ traverseSnd f (x, y) = (,) x <$> f y
 
 -- Primitives ------------------------------------------------------------------
 
-instance EvalPrims SBool SWord SInteger where
+instance EvalPrims EvalSym where
   evalPrim Decl { dName = n, .. } =
     do prim <- asPrim n
        Map.lookup prim primTable
@@ -285,7 +285,7 @@ logicShift nm wop reindex =
 
 indexFront :: Maybe Integer
            -> TValue
-           -> SeqMap SBool SWord SInteger
+           -> SeqMap EvalSym
            -> SWord
            -> Eval Value
 indexFront mblen a xs idx
@@ -315,7 +315,7 @@ indexFront mblen a xs idx
 
 indexBack :: Maybe Integer
           -> TValue
-          -> SeqMap SBool SWord SInteger
+          -> SeqMap EvalSym
           -> SWord
           -> Eval Value
 indexBack (Just n) a xs idx = indexFront (Just n) a (reverseSeqMap n xs) idx
@@ -323,7 +323,7 @@ indexBack Nothing _ _ _ = evalPanic "Expected finite sequence" ["indexBack"]
 
 indexFront_bits :: Maybe Integer
                 -> TValue
-                -> SeqMap SBool SWord SInteger
+                -> SeqMap EvalSym
                 -> Seq.Seq SBool
                 -> Eval Value
 indexFront_bits mblen a xs bits0 = go 0 (length bits0) (Fold.toList bits0)
@@ -349,7 +349,7 @@ indexFront_bits mblen a xs bits0 = go 0 (length bits0) (Fold.toList bits0)
 
 indexBack_bits :: Maybe Integer
                -> TValue
-               -> SeqMap SBool SWord SInteger
+               -> SeqMap EvalSym
                -> Seq.Seq SBool
                -> Eval Value
 indexBack_bits (Just n) a xs idx = indexFront_bits (Just n) a (reverseSeqMap n xs) idx
@@ -357,7 +357,7 @@ indexBack_bits Nothing _ _ _ = evalPanic "Expected finite sequence" ["indexBack_
 
 
 -- | Compare a symbolic word value with a concrete integer.
-wordValueEqualsInteger :: WordValue SBool SWord SInteger -> Integer -> Eval SBool
+wordValueEqualsInteger :: WordValue EvalSym -> Integer -> Eval SBool
 wordValueEqualsInteger wv i
   | wordValueSize wv < widthInteger i = return SBV.svFalse
   | otherwise =
@@ -382,10 +382,10 @@ lazyMergeBit c x y =
 updateFrontSym
   :: Nat'
   -> TValue
-  -> SeqMap SBool SWord SInteger
-  -> WordValue SBool SWord SInteger
-  -> Eval (GenValue SBool SWord SInteger)
-  -> Eval (SeqMap SBool SWord SInteger)
+  -> SeqMap EvalSym
+  -> WordValue EvalSym
+  -> Eval (GenValue EvalSym)
+  -> Eval (SeqMap EvalSym)
 updateFrontSym len _eltTy vs wv val =
   case wv of
     WordVal w | Just j <- SBV.svAsInteger w ->
@@ -401,10 +401,10 @@ updateFrontSym len _eltTy vs wv val =
 updateFrontSym_word
   :: Nat'
   -> TValue
-  -> WordValue SBool SWord SInteger
-  -> WordValue SBool SWord SInteger
-  -> Eval (GenValue SBool SWord SInteger)
-  -> Eval (WordValue SBool SWord SInteger)
+  -> WordValue EvalSym
+  -> WordValue EvalSym
+  -> Eval (GenValue EvalSym)
+  -> Eval (WordValue EvalSym)
 updateFrontSym_word Inf _ _ _ _ = evalPanic "Expected finite sequence" ["updateFrontSym_bits"]
 updateFrontSym_word (Nat n) eltTy bv wv val =
   case wv of
@@ -425,10 +425,10 @@ updateFrontSym_word (Nat n) eltTy bv wv val =
 updateBackSym
   :: Nat'
   -> TValue
-  -> SeqMap SBool SWord SInteger
-  -> WordValue SBool SWord SInteger
-  -> Eval (GenValue SBool SWord SInteger)
-  -> Eval (SeqMap SBool SWord SInteger)
+  -> SeqMap EvalSym
+  -> WordValue EvalSym
+  -> Eval (GenValue EvalSym)
+  -> Eval (SeqMap EvalSym)
 updateBackSym Inf _ _ _ _ = evalPanic "Expected finite sequence" ["updateBackSym"]
 updateBackSym (Nat n) _eltTy vs wv val =
   case wv of
@@ -443,10 +443,10 @@ updateBackSym (Nat n) _eltTy vs wv val =
 updateBackSym_word
   :: Nat'
   -> TValue
-  -> WordValue SBool SWord SInteger
-  -> WordValue SBool SWord SInteger
-  -> Eval (GenValue SBool SWord SInteger)
-  -> Eval (WordValue SBool SWord SInteger)
+  -> WordValue EvalSym
+  -> WordValue EvalSym
+  -> Eval (GenValue EvalSym)
+  -> Eval (WordValue EvalSym)
 updateBackSym_word Inf _ _ _ _ = evalPanic "Expected finite sequence" ["updateBackSym_bits"]
 updateBackSym_word (Nat n) eltTy bv wv val = do
   case wv of
@@ -472,9 +472,9 @@ asBitList = go id
        go _ _ = Nothing
 
 
-asWordList :: [WordValue SBool SWord SInteger] -> Maybe [SWord]
+asWordList :: [WordValue EvalSym] -> Maybe [SWord]
 asWordList = go id
- where go :: ([SWord] -> [SWord]) -> [WordValue SBool SWord SInteger] -> Maybe [SWord]
+ where go :: ([SWord] -> [SWord]) -> [WordValue EvalSym] -> Maybe [SWord]
        go f [] = Just (f [])
        go f (WordVal x :vs) = go (f . (x:)) vs
        go f (BitsVal bs:vs) =
@@ -581,7 +581,7 @@ cmpBinary :: (SBool -> SBool -> Eval SBool -> Eval SBool)
           -> (SWord -> SWord -> Eval SBool -> Eval SBool)
           -> (SInteger -> SInteger -> Eval SBool -> Eval SBool)
           -> (Integer -> SInteger -> SInteger -> Eval SBool -> Eval SBool)
-          -> SBool -> Binary SBool SWord SInteger
+          -> SBool -> Binary EvalSym
 cmpBinary fb fw fi fz b ty v1 v2 = VBit <$> cmpValue fb fw fi fz ty v1 v2 (return b)
 
 -- Signed arithmetic -----------------------------------------------------------

@@ -11,9 +11,10 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE PatternGuards #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Cryptol.Symbolic.Value
-  ( SBool, SWord, SInteger
+  ( SBool, SWord, SInteger, EvalSym
   , literalSWord
   , fromBitsLE
   , forallBV_, existsBV_
@@ -45,7 +46,8 @@ import Cryptol.Eval.Value  ( GenValue(..), BitWord(..), lam, tlam, toStream,
                            fromSeq, fromVBit, fromVWord, fromVFun, fromVPoly,
                            fromVTuple, fromVRecord, lookupRecord, SeqMap(..),
                            ppBV, BV(..), integerToChar, lookupSeqMap, memoMap,
-                           wordValueSize, asBitsMap)
+                           wordValueSize, asBitsMap,
+                           VBool, VWord, VInteger)
 import Cryptol.Utils.Panic (panic)
 import Cryptol.Utils.PP
 
@@ -84,7 +86,13 @@ existsSInteger_ = symbolicEnv >>= liftIO . svMkSymVar (Just EX) KUnbounded Nothi
 
 -- Values ----------------------------------------------------------------------
 
-type Value = GenValue SBool SWord SInteger
+data EvalSym
+
+type instance VBool EvalSym = SBool
+type instance VInteger EvalSym = SInteger
+type instance VWord EvalSym = SWord
+
+type Value = GenValue EvalSym
 
 -- Symbolic Conditionals -------------------------------------------------------
 
@@ -104,9 +112,9 @@ mergeBit f c b1 b2 = svSymbolicMerge KBool f c b1 b2
 
 mergeWord :: Bool
           -> SBool
-          -> WordValue SBool SWord SInteger
-          -> WordValue SBool SWord SInteger
-          -> WordValue SBool SWord SInteger
+          -> WordValue EvalSym
+          -> WordValue EvalSym
+          -> WordValue EvalSym
 mergeWord f c (WordVal w1) (WordVal w2) =
     WordVal $ svSymbolicMerge (kindOf w1) f c w1 w2
 mergeWord f c (WordVal w1) (BitsVal ys) =
@@ -120,9 +128,9 @@ mergeWord f c w1 w2 =
 
 mergeWord' :: Bool
            -> SBool
-           -> Eval (WordValue SBool SWord SInteger)
-           -> Eval (WordValue SBool SWord SInteger)
-           -> Eval (WordValue SBool SWord SInteger)
+           -> Eval (WordValue EvalSym)
+           -> Eval (WordValue EvalSym)
+           -> Eval (WordValue EvalSym)
 mergeWord' f c x y = mergeWord f c <$> x <*> y
 
 mergeBits :: Bool
@@ -166,7 +174,7 @@ mergeValue' f c x1 x2 =
      v2 <- x2
      mergeValue f c v1 v2
 
-mergeSeqMap :: Bool -> SBool -> SeqMap SBool SWord SInteger -> SeqMap SBool SWord SInteger -> SeqMap SBool SWord SInteger
+mergeSeqMap :: Bool -> SBool -> SeqMap EvalSym -> SeqMap EvalSym -> SeqMap EvalSym
 mergeSeqMap f c x y =
   IndexSeqMap $ \i ->
   do xi <- lookupSeqMap x i
@@ -175,7 +183,7 @@ mergeSeqMap f c x y =
 
 -- Symbolic Big-endian Words -------------------------------------------------------
 
-instance BitWord SBool SWord SInteger where
+instance BitWord EvalSym where
   wordLen v = toInteger (intSizeOf v)
   wordAsChar v = integerToChar <$> svAsInteger v
 

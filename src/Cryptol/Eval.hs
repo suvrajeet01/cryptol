@@ -52,25 +52,25 @@ import           Data.Semigroup
 import Prelude ()
 import Prelude.Compat
 
-type EvalEnv = GenEvalEnv Bool BV Integer
+type EvalEnv = GenEvalEnv EvalConc
 
 -- Expression Evaluation -------------------------------------------------------
 
 -- | Extend the given evaluation environment with all the declarations
 --   contained in the given module.
-moduleEnv :: EvalPrims b w i
+moduleEnv :: EvalPrims p
           => Module           -- ^ Module containing declarations to evaluate
-          -> GenEvalEnv b w i -- ^ Environment to extend
-          -> Eval (GenEvalEnv b w i)
+          -> GenEvalEnv p     -- ^ Environment to extend
+          -> Eval (GenEvalEnv p)
 moduleEnv m env = evalDecls (mDecls m) =<< evalNewtypes (mNewtypes m) env
 
 -- | Evaluate a Cryptol expression to a value.  This evaluator is parameterized
 --   by the `EvalPrims` class, which defines the behavior of bits and words, in
 --   addition to providing implementations for all the primitives.
-evalExpr :: EvalPrims b w i
-         => GenEvalEnv b w i   -- ^ Evaluation environment
+evalExpr :: EvalPrims p
+         => GenEvalEnv p       -- ^ Evaluation environment
          -> Expr               -- ^ Expression to evaluate
-         -> Eval (GenValue b w i)
+         -> Eval (GenValue p)
 evalExpr env expr = case expr of
 
   -- Try to detect when the user has directly written a finite sequence of
@@ -173,17 +173,17 @@ evalExpr env expr = case expr of
 
 -- Newtypes --------------------------------------------------------------------
 
-evalNewtypes :: EvalPrims b w i
+evalNewtypes :: EvalPrims p
              => Map.Map Name Newtype
-             -> GenEvalEnv b w i
-             -> Eval (GenEvalEnv b w i)
+             -> GenEvalEnv p
+             -> Eval (GenEvalEnv p)
 evalNewtypes nts env = foldM (flip evalNewtype) env $ Map.elems nts
 
 -- | Introduce the constructor function for a newtype.
-evalNewtype :: EvalPrims b w i
+evalNewtype :: EvalPrims p
             => Newtype
-            -> GenEvalEnv b w i
-            -> Eval (GenEvalEnv b w i)
+            -> GenEvalEnv p
+            -> Eval (GenEvalEnv p)
 evalNewtype nt = bindVar (ntName nt) (return (foldr tabs con (ntParams nt)))
   where
   tabs _tp body = tlam (\ _ -> body)
@@ -194,16 +194,16 @@ evalNewtype nt = bindVar (ntName nt) (return (foldr tabs con (ntParams nt)))
 
 -- | Extend the given evaluation environment with the result of evaluating the
 --   given collection of declaration groups.
-evalDecls :: EvalPrims b w i
+evalDecls :: EvalPrims p
           => [DeclGroup]         -- ^ Declaration groups to evaluate
-          -> GenEvalEnv b w i    -- ^ Environment to extend
-          -> Eval (GenEvalEnv b w i)
+          -> GenEvalEnv p        -- ^ Environment to extend
+          -> Eval (GenEvalEnv p)
 evalDecls dgs env = foldM evalDeclGroup env dgs
 
-evalDeclGroup :: EvalPrims b w i
-              => GenEvalEnv b w i
+evalDeclGroup :: EvalPrims p
+              => GenEvalEnv p
               -> DeclGroup
-              -> Eval (GenEvalEnv b w i)
+              -> Eval (GenEvalEnv p)
 evalDeclGroup env dg = do
   case dg of
     Recursive ds -> do
@@ -237,9 +237,9 @@ evalDeclGroup env dg = do
 --   to this is to force an eta-expansion procedure on all recursive definitions.
 --   However, for the so-called 'Value' types we can instead optimistically use the 'delayFill'
 --   operation and only fall back on full eta expansion if the thunk is double-forced.
-fillHole :: BitWord b w i
-         => GenEvalEnv b w i
-         -> (Name, Schema, Eval (GenValue b w i), Eval (GenValue b w i) -> Eval ())
+fillHole :: BitWord p
+         => GenEvalEnv p
+         -> (Name, Schema, Eval (GenValue p), Eval (GenValue p) -> Eval ())
          -> Eval ()
 fillHole env (nm, sch, _, fill) = do
   case lookupVar nm env of
@@ -254,7 +254,7 @@ fillHole env (nm, sch, _, fill) = do
 --   be implemented rather more efficently than general types because we can
 --   rely on the 'delayFill' operation to build a thunk that falls back on performing
 --   eta-expansion rather than doing it eagerly.
-isValueType :: GenEvalEnv b w i -> Schema -> Bool
+isValueType :: GenEvalEnv p -> Schema -> Bool
 isValueType env Forall{ sVars = [], sProps = [], sType = t0 }
    = go (evalValType (envTypes env) t0)
  where
@@ -268,10 +268,10 @@ isValueType _ _ = False
 
 
 -- | Eta-expand a word value.  This forces an unpacked word representation.
-etaWord  :: BitWord b w i
+etaWord  :: BitWord p
          => Integer
-         -> Eval (GenValue b w i)
-         -> Eval (WordValue b w i)
+         -> Eval (GenValue p)
+         -> Eval (WordValue p)
 etaWord n x = do
   w <- delay Nothing (fromWordVal "during eta-expansion" =<< x)
   return $ BitsVal $ Seq.fromFunction (fromInteger n) $ \i ->
@@ -284,12 +284,12 @@ etaWord n x = do
 --   the correct evaluation semantics of recursive definitions.  Otherwise,
 --   expressions that should be expected to produce well-defined values in the
 --   denotational semantics will fail to terminate instead.
-etaDelay :: BitWord b w i
+etaDelay :: BitWord p
          => String
-         -> GenEvalEnv b w i
+         -> GenEvalEnv p
          -> Schema
-         -> Eval (GenValue b w i)
-         -> Eval (GenValue b w i)
+         -> Eval (GenValue p)
+         -> Eval (GenValue p)
 etaDelay msg env0 Forall{ sVars = vs0, sType = tp0 } = goTpVars env0 vs0
   where
   goTpVars env []     x = go (evalValType (envTypes env) tp0) x
@@ -377,7 +377,7 @@ etaDelay msg env0 Forall{ sVars = vs0, sType = tp0 } = goTpVars env0 vs0
 
 
 declHole :: Decl
-         -> Eval (Name, Schema, Eval (GenValue b w i), Eval (GenValue b w i) -> Eval ())
+         -> Eval (Name, Schema, Eval (GenValue p), Eval (GenValue p) -> Eval ())
 declHole d =
   case dDefinition d of
     DPrim   -> evalPanic "Unexpected primitive declaration in recursive group"
@@ -398,11 +398,11 @@ declHole d =
 --   handle the subtle name-binding issues that arise from recursive
 --   definitions.  The 'read only' environment is used to bring recursive
 --   names into scope while we are still defining them.
-evalDecl :: EvalPrims b w i
-         => GenEvalEnv b w i  -- ^ A 'read only' environment for use in declaration bodies
-         -> GenEvalEnv b w i  -- ^ An evaluation environment to extend with the given declaration
+evalDecl :: EvalPrims p
+         => GenEvalEnv p      -- ^ A 'read only' environment for use in declaration bodies
+         -> GenEvalEnv p      -- ^ An evaluation environment to extend with the given declaration
          -> Decl              -- ^ The declaration to evaluate
-         -> Eval (GenEvalEnv b w i)
+         -> Eval (GenEvalEnv p)
 evalDecl renv env d =
   case dDefinition d of
     DPrim   -> case evalPrim d of
@@ -417,11 +417,11 @@ evalDecl renv env d =
 -- | Apply the the given "selector" form to the given value.  This function pushes
 --   tuple and record selections pointwise down into other value constructs
 --   (e.g., streams and functions).
-evalSel :: forall b w i
-         . EvalPrims b w i
-        => GenValue b w i
+evalSel :: forall p
+         . EvalPrims p
+        => GenValue p
         -> Selector
-        -> Eval (GenValue b w i)
+        -> Eval (GenValue p)
 evalSel val sel = case sel of
 
   TupleSel n _  -> tupleSel n val
@@ -455,8 +455,8 @@ evalSel val sel = case sel of
                               [ "Unexpected value in list selection"
                               , show vdoc ]
 
-evalSetSel :: forall b w i. EvalPrims b w i =>
-  GenValue b w i -> Selector -> Eval (GenValue b w i) -> Eval (GenValue b w i)
+evalSetSel :: forall p. EvalPrims p =>
+  GenValue p -> Selector -> Eval (GenValue p) -> Eval (GenValue p)
 evalSetSel e x v =
   case x of
     TupleSel n _  -> setTuple n
@@ -506,22 +506,22 @@ evalSetSel e x v =
 -- | Evaluation environments for list comprehensions: Each variable
 -- name is bound to a list of values, one for each element in the list
 -- comprehension.
-data ListEnv b w i = ListEnv
-  { leVars   :: !(Map.Map Name (Integer -> Eval (GenValue b w i)))
+data ListEnv p = ListEnv
+  { leVars   :: !(Map.Map Name (Integer -> Eval (GenValue p)))
       -- ^ Bindings whose values vary by position
-  , leStatic :: !(Map.Map Name (Eval (GenValue b w i)))
+  , leStatic :: !(Map.Map Name (Eval (GenValue p)))
       -- ^ Bindings whose values are constant
   , leTypes  :: !TypeEnv
   }
 
-instance Semigroup (ListEnv b w i) where
+instance Semigroup (ListEnv p) where
   l <> r = ListEnv
     { leVars   = Map.union (leVars  l)  (leVars  r)
     , leStatic = Map.union (leStatic l) (leStatic r)
     , leTypes  = Map.union (leTypes l)  (leTypes r)
     }
 
-instance Monoid (ListEnv b w i) where
+instance Monoid (ListEnv p) where
   mempty = ListEnv
     { leVars   = Map.empty
     , leStatic = Map.empty
@@ -530,7 +530,7 @@ instance Monoid (ListEnv b w i) where
 
   mappend l r = l <> r
 
-toListEnv :: GenEvalEnv b w i -> ListEnv b w i
+toListEnv :: GenEvalEnv p -> ListEnv p
 toListEnv e =
   ListEnv
   { leVars   = mempty
@@ -541,7 +541,7 @@ toListEnv e =
 -- | Evaluate a list environment at a position.
 --   This choses a particular value for the varying
 --   locations.
-evalListEnv :: ListEnv b w i -> Integer -> GenEvalEnv b w i
+evalListEnv :: ListEnv p -> Integer -> GenEvalEnv p
 evalListEnv (ListEnv vm st tm) i =
     let v = fmap ($i) vm
      in EvalEnv{ envVars = Map.union v st
@@ -549,21 +549,21 @@ evalListEnv (ListEnv vm st tm) i =
                }
 
 bindVarList :: Name
-            -> (Integer -> Eval (GenValue b w i))
-            -> ListEnv b w i
-            -> ListEnv b w i
+            -> (Integer -> Eval (GenValue p))
+            -> ListEnv p
+            -> ListEnv p
 bindVarList n vs lenv = lenv { leVars = Map.insert n vs (leVars lenv) }
 
 -- List Comprehensions ---------------------------------------------------------
 
 -- | Evaluate a comprehension.
-evalComp :: EvalPrims b w i
-         => GenEvalEnv b w i -- ^ Starting evaluation environment
+evalComp :: EvalPrims p
+         => GenEvalEnv p -- ^ Starting evaluation environment
          -> Nat'             -- ^ Length of the comprehension
          -> TValue           -- ^ Type of the comprehension elements
          -> Expr             -- ^ Head expression of the comprehension
          -> [[Match]]        -- ^ List of parallel comprehension branches
-         -> Eval (GenValue b w i)
+         -> Eval (GenValue p)
 evalComp env len elty body ms =
        do lenv <- mconcat <$> mapM (branchEnvs (toListEnv env)) ms
           mkSeq len elty <$> memoMap (IndexSeqMap $ \i -> do
@@ -571,17 +571,17 @@ evalComp env len elty body ms =
 
 -- | Turn a list of matches into the final environments for each iteration of
 -- the branch.
-branchEnvs :: EvalPrims b w i
-           => ListEnv b w i
+branchEnvs :: EvalPrims p
+           => ListEnv p
            -> [Match]
-           -> Eval (ListEnv b w i)
+           -> Eval (ListEnv p)
 branchEnvs env matches = foldM evalMatch env matches
 
 -- | Turn a match into the list of environments it represents.
-evalMatch :: EvalPrims b w i
-          => ListEnv b w i
+evalMatch :: EvalPrims p
+          => ListEnv p
           -> Match
-          -> Eval (ListEnv b w i)
+          -> Eval (ListEnv p)
 evalMatch lenv m = case m of
 
   -- many envs

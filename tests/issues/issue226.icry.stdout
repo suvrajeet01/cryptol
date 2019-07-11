@@ -6,7 +6,13 @@ Type Synonyms
 =============
     type Bool = Bit
     type Char = [8]
+    type Float128 = Floating 113 15
+    type Float16 = Floating 11 5
+    type Float256 = Floating 237 19
+    type Float32 = Floating 24 8
+    type Float64 = Floating 53 11
     type lg2 n = width (max 1 n - 1)
+    type RoundingMode = [3]
     type String n = [n][8]
     type Word n = [n]
 
@@ -15,6 +21,8 @@ Constraint Synonyms
     type constraint i < j = j >= 1 + i
     type constraint i <= j = j >= i
     type constraint i > j = i >= 1 + j
+    type constraint ValidFloat m n = (&&) fin m
+                                          (&&) fin n (&&) (m >= 1) (n >= 1)
 
 Primitive Types
 ===============
@@ -32,6 +40,7 @@ Primitive Types
     Arith : * -> Prop
     Bit : *
     Cmp : * -> Prop
+    Float : # -> # -> *
     fin : * -> Prop
     Integer : *
     inf : #
@@ -40,6 +49,7 @@ Primitive Types
     lengthFromThenTo : # -> # -> # -> #
     max : # -> # -> #
     min : # -> # -> #
+    Real : *
     SignedCmp : * -> Prop
     width : # -> #
     Z : # -> *
@@ -99,6 +109,80 @@ Symbols
     foldl : {n, a, b} (fin n) => (a -> b -> a) -> a -> [n]b -> a
     foldr : {n, a, b} (fin n) => (a -> b -> b) -> b -> [n]a -> b
     foo : {a} a -> a
+    fp :
+      {m, n} (fin m, fin n, n >= 1) =>
+        Bit -> [m] -> [n] -> Floating (1 + m) n
+    fpAbs :
+      {m, n} (fin m, fin n, m >= 1, n >= 1) =>
+        Floating m n -> Floating m n
+    fpAdd :
+      {m, n} (fin m, fin n, m >= 1, n >= 1) =>
+        RoundingMode -> Floating m n -> Floating m n -> Floating m n
+    fpDiv :
+      {m, n} (fin m, fin n, m >= 1, n >= 1) =>
+        RoundingMode -> Floating m n -> Floating m n -> Floating m n
+    fpFromBits :
+      {m, n} (fin m, fin n, m >= 1, n >= 1) => [m + n] -> Floating m n
+    fpFromFloat :
+      {m, n, p, q} (fin m, fin n, m >= 1, n >= 1, fin p, fin q, p >= 1,
+                    q >= 1) =>
+        RoundingMode -> Floating m n -> Floating p q
+    fpFromReal :
+      {m, n} (fin m, fin n, m >= 1, n >= 1) =>
+        RoundingMode -> Real -> Floating m n
+    fpFromSignedInt :
+      {i, m, n} (fin m, fin n, m >= 1, n >= 1) =>
+        RoundingMode -> [i] -> Floating m n
+    fpFromUnsignedInt :
+      {i, m, n} (fin m, fin n, m >= 1, n >= 1) =>
+        RoundingMode -> [i] -> Floating m n
+    fpIsInf :
+      {m, n} (fin m, fin n, m >= 1, n >= 1) => Floating m n -> Bool
+    fpIsNaN :
+      {m, n} (fin m, fin n, m >= 1, n >= 1) => Floating m n -> Bool
+    fpIsNegative :
+      {m, n} (fin m, fin n, m >= 1, n >= 1) => Floating m n -> Bool
+    fpIsNormal :
+      {m, n} (fin m, fin n, m >= 1, n >= 1) => Floating m n -> Bool
+    fpIsPositive :
+      {m, n} (fin m, fin n, m >= 1, n >= 1) => Floating m n -> Bool
+    fpIsSubNormal :
+      {m, n} (fin m, fin n, m >= 1, n >= 1) => Floating m n -> Bool
+    fpIsZero :
+      {m, n} (fin m, fin n, m >= 1, n >= 1) => Floating m n -> Bool
+    fpMax :
+      {m, n} (fin m, fin n, m >= 1, n >= 1) =>
+        Floating m n -> Floating m n -> Floating m n
+    fpMin :
+      {m, n} (fin m, fin n, m >= 1, n >= 1) =>
+        Floating m n -> Floating m n -> Floating m n
+    fpMul :
+      {m, n} (fin m, fin n, m >= 1, n >= 1) =>
+        RoundingMode -> Floating m n -> Floating m n -> Floating m n
+    fpMulAdd :
+      {m, n} (fin m, fin n, m >= 1, n >= 1) =>
+        RoundingMode -> Floating m n -> Floating m n -> Floating m
+                                                                 n -> Floating m n
+    fpNaN : {m, n} (fin m, fin n, m >= 1, n >= 1) => Floating m n
+    fpNegInf : {m, n} (fin m, fin n, m >= 1, n >= 1) => Floating m n
+    fpPosInf : {m, n} (fin m, fin n, m >= 1, n >= 1) => Floating m n
+    fpRound :
+      {m, n} (fin m, fin n, m >= 1, n >= 1) =>
+        RoundingMode -> Floating m n -> Floating m n
+    fpSqrt :
+      {m, n} (fin m, fin n, m >= 1, n >= 1) =>
+        RoundingMode -> Floating m n -> Floating m n
+    fpSub :
+      {m, n} (fin m, fin n, m >= 1, n >= 1) =>
+        RoundingMode -> Floating m n -> Floating m n -> Floating m n
+    fpToReal :
+      {m, n} (fin m, fin n, m >= 1, n >= 1) => Floating m n -> Real
+    fpToSignedInt :
+      {i, m, n} (fin m, fin n, m >= 1, n >= 1) =>
+        RoundingMode -> Floating m n -> [i]
+    fpToUnsignedInt :
+      {i, m, n} (fin m, fin n, m >= 1, n >= 1) =>
+        RoundingMode -> Floating m n -> [i]
     fromInteger : {a} (Arith a) => Integer -> a
     fromThenTo :
       {first, next, last, a, len} (fin first, fin next, fin last,
@@ -136,6 +220,16 @@ Symbols
     random : {a} [256] -> a
     repeat : {n, a} a -> [n]a
     reverse : {n, a} (fin n) => [n]a -> [n]a
+    rna : RoundingMode
+    rne : RoundingMode
+    roundNearestAway : RoundingMode
+    roundNearestEven : RoundingMode
+    roundNegative : RoundingMode
+    roundPositive : RoundingMode
+    roundZero : RoundingMode
+    rtn : RoundingMode
+    rtp : RoundingMode
+    rtz : RoundingMode
     sborrow : {n} (fin n, n >= 1) => [n] -> [n] -> Bit
     scanl : {n, b, a} (b -> a -> b) -> b -> [n]a -> [1 + n]b
     scanr : {n, a, b} (fin n) => (a -> b -> b) -> b -> [n]a -> [1 + n]b

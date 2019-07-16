@@ -68,7 +68,8 @@ library
                        transformers-base >= 0.4,
                        mtl               >= 2.2.1,
                        time >= 1.6.0.1,
-                       panic >= 0.3
+                       panic >= 0.3,
+                       libBF
 
 
   Build-tools:         alex, happy
@@ -160,6 +161,8 @@ library
                        Cryptol.Eval.Reference,
                        Cryptol.Eval.Type,
                        Cryptol.Eval.Value,
+                       Cryptol.Eval.BV,
+                       Cryptol.Eval.Float,
 
                        Cryptol.Testing.Concrete,
                        Cryptol.Testing.Random,

@@ -47,7 +47,7 @@ import Cryptol.Eval.Value  ( GenValue(..), BitWord(..), lam, tlam, toStream,
                            fromVTuple, fromVRecord, lookupRecord, SeqMap(..),
                            ppBV, BV(..), integerToChar, lookupSeqMap, memoMap,
                            wordValueSize, asBitsMap,
-                           VBool, VWord, VInteger)
+                           VBool, VWord, VInteger, VFloat)
 import Cryptol.Utils.Panic (panic)
 import Cryptol.Utils.PP
 
@@ -91,6 +91,7 @@ data EvalSym
 type instance VBool EvalSym = SBool
 type instance VInteger EvalSym = SInteger
 type instance VWord EvalSym = SWord
+type instance VFloat EvalSym = () -- XXX
 
 type Value = GenValue EvalSym
 

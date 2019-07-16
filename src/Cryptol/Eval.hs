@@ -337,6 +337,8 @@ etaDelay msg env0 Forall{ sVars = vs0, sType = tp0 } = goTpVars env0 vs0
       TVBit -> x
       TVInteger -> x
       TVIntMod _ -> x
+      TVReal -> x
+      TVFloat {} -> x
 
       TVSeq n TVBit ->
           do w <- delayFill (fromWordVal "during eta-expansion" =<< x) (etaWord n x)

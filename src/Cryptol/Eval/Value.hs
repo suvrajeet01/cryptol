@@ -26,7 +26,10 @@
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE StandaloneDeriving #-}
 
-module Cryptol.Eval.Value where
+module Cryptol.Eval.Value
+  ( module Cryptol.Eval.Value
+  , module Cryptol.Eval.BV
+  ) where
 
 import Data.Bits
 import Data.IORef
@@ -40,6 +43,8 @@ import qualified Data.Kind as HS (Type,Constraint)
 import qualified Cryptol.Eval.Arch as Arch
 import Cryptol.Eval.Monad
 import Cryptol.Eval.Type
+import Cryptol.Eval.BV
+import Cryptol.Eval.Float
 
 import Cryptol.TypeCheck.AST
 import Cryptol.TypeCheck.Solver.InfNat(Nat'(..))
@@ -55,30 +60,6 @@ import GHC.Generics (Generic)
 import Control.DeepSeq
 
 -- Values ----------------------------------------------------------------------
-
--- | Concrete bitvector values: width, value
--- Invariant: The value must be within the range 0 .. 2^width-1
-data BV = BV !Integer !Integer deriving (Generic, NFData)
-
-instance Show BV where
-  show = show . bvVal
-
--- | Apply an integer function to the values of bitvectors.
---   This function assumes both bitvectors are the same width.
-binBV :: (Integer -> Integer -> Integer) -> BV -> BV -> BV
-binBV f (BV w x) (BV _ y) = mkBv w (f x y)
-
--- | Apply an integer function to the values of a bitvector.
---   This function assumes the function will not require masking.
-unaryBV :: (Integer -> Integer) -> BV -> BV
-unaryBV f (BV w x) = mkBv w $ f x
-
-bvVal :: BV -> Integer
-bvVal (BV _w x) = x
-
--- | Smart constructor for 'BV's that checks for the width limit
-mkBv :: Integer -> Integer -> BV
-mkBv w i = BV w (mask w i)
 
 -- | A sequence map represents a mapping from nonnegative integer indices
 --   to values.  These are used to represent both finite and infinite sequences.
@@ -292,6 +273,7 @@ data GenValue p
   | VTuple ![Eval (GenValue p)]               -- ^ @ ( .. ) @
   | VBit !(VBool p)                           -- ^ @ Bit    @
   | VInteger !(VInteger p)                    -- ^ @ Integer @ or @ Z n @
+  | VFloat !(VFloat p)                        -- ^ @ Float @
   | VSeq !Integer !(SeqMap p)                 -- ^ @ [n]a   @
                                               --   Invariant: VSeq is never a sequence of bits
   | VWord !Integer !(Eval (WordValue p))      -- ^ @ [n]Bit @
@@ -307,9 +289,10 @@ deriving instance Class NFData p => NFData (GenValue p)
 type family VBool p = b | b -> p
 type family VInteger p = i | i -> p
 type family VWord p = w | w -> p
+type family VFloat p = f | f -> p
 
 type Class (c :: HS.Type -> HS.Constraint) p =
-    (c (VBool p), c (VInteger p), c (VWord p))
+    (c (VBool p), c (VInteger p), c (VWord p), c (VFloat p))
 
 
 data EvalConc
@@ -317,6 +300,7 @@ data EvalConc
 type instance VBool EvalConc = Bool
 type instance VInteger EvalConc = Integer
 type instance VWord EvalConc = BV
+type instance VFloat EvalConc = FV
 
 
 
@@ -334,6 +318,7 @@ forceValue v = case v of
   VSeq n xs   -> mapM_ (forceValue =<<) (enumerateSeqMap n xs)
   VBit _b     -> return ()
   VInteger _i -> return ()
+  VFloat _    -> pure ()
   VWord _ wv  -> forceWordValue =<< wv
   VStream _   -> return ()
   VFun _      -> return ()
@@ -347,6 +332,7 @@ instance Class Show p => Show (GenValue p) where
     VTuple xs  -> "tuple:" ++ show (length xs)
     VBit b     -> show b
     VInteger i -> show i
+    VFloat f   -> show f
     VSeq n _   -> "seq:" ++ show n
     VWord n _  -> "word:"  ++ show n
     VStream _  -> "stream"
@@ -385,6 +371,7 @@ ppValue opts = loop
                              return $ parens (sep (punctuate comma vals'))
     VBit b             -> return $ ppBit b
     VInteger i         -> return $ ppInteger opts i
+    VFloat i           -> pure   $ ppFloat opts i
     VSeq sz vals       -> ppWordSeq sz vals
     VWord _ wv         -> ppWordVal =<< wv
     VStream vals       -> do vals' <- traverse (>>=loop) $ enumerateSeqMap (useInfLength opts) vals
@@ -461,6 +448,9 @@ class BitWord p where
   -- | Pretty-print an integer value
   ppInteger :: PPOpts -> VInteger p -> Doc
 
+  -- | Pretty print a float value.
+  ppFloat :: PPOpts -> VFloat p -> Doc
+
   -- | Attempt to render a word value as an ASCII character.  Return `Nothing`
   --   if the character value is unknown (e.g., for symbolic values).
   wordAsChar :: VWord p -> Maybe Char
@@ -478,6 +468,8 @@ class BitWord p where
 
   -- | Construct a literal integer value from the given integer.
   integerLit :: Integer {-- ^ Value -} -> VInteger p
+
+  floatZero :: Integer{-^prec-} -> Integer{-^exp-} -> VFloat p
 
   -- | Extract the numbered bit from the word.
   --
@@ -580,13 +572,7 @@ class BitWord p => EvalPrims p where
            -> Eval (GenValue p)
 
 
--- Concrete Big-endian Words ------------------------------------------------------------
-
-mask :: Integer  -- ^ Bit-width
-     -> Integer  -- ^ Value
-     -> Integer  -- ^ Masked result
-mask w i | w >= Arch.maxBigIntWidth = wordTooWide w
-         | otherwise                = i .&. ((1 `shiftL` fromInteger w) - 1)
+-- Concrete Big-endian Words ---------------------------------------------------
 
 instance BitWord EvalConc where
   wordLen (BV w _) = w
@@ -603,6 +589,9 @@ instance BitWord EvalConc where
   ppWord = ppBV
 
   ppInteger _opts i = integer i
+
+  ppFloat opts i = ppFV (useBase opts) i
+  floatZero m n = fpZero m n
 
   bitLit b = b
   wordLit = mkBv

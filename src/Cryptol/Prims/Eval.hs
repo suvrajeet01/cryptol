@@ -30,6 +30,7 @@ import qualified Cryptol.Eval.Arch as Arch
 import Cryptol.Eval.Monad
 import Cryptol.Eval.Type
 import Cryptol.Eval.Value
+import Cryptol.Eval.Float
 import Cryptol.Testing.Random (randomValue)
 import Cryptol.Utils.Panic (panic)
 import Cryptol.ModuleSystem.Name (asPrim)
@@ -59,7 +60,7 @@ instance EvalPrims EvalConc where
 
 
 primTable :: Map.Map Ident Value
-primTable = Map.fromList $ map (\(n, v) -> (mkIdent (T.pack n), v))
+primTable = Map.fromList $ map (\(n, v) -> (mkIdent (T.pack n), v)) $
   [ ("+"          , {-# SCC "Prelude::(+)" #-}
                     binary (arithBinary (liftBinArith (+)) (liftBinInteger (+))
                             (liftBinIntMod (+))))
@@ -214,7 +215,46 @@ primTable = Map.fromList $ map (\(n, v) -> (mkIdent (T.pack n), v))
                          io $ logPrint evalLogger
                              $ if null msg then doc else text msg <+> doc
                          return yv)
+  ] ++ floatPrims
+
+
+floatPrims =
+  [ ("fp"        , {-# SCC "Prelude::fp" #-}
+                    nlam $ \ _m ->
+                    nlam $ \ _n ->
+                    lam  $ \ sign -> pure $
+                    wlam $ \ prec -> pure $
+                    wlam $ \ expo -> do ~(VBit s) <- sign
+                                        VFloat <$> fp s prec expo)
+
+  , ("fpIsInf"      , {-# SCC "Prelude::fpIsInf" #-}       pred1 fpIsInf)
+  , ("fpIsNaN"      , {-# SCC "Prelude::fpIsNaN" #-}       pred1 fpIsNaN)
+  , ("fpIsZero"     , {-# SCC "Prelude::fpIsZero" #-}      pred1 fpIsZero)
+  , ("fpIsNegative" , {-# SCC "Prelude::fpIsNegative" #-}  pred1 fpIsNegative)
+  , ("fpIsPositive" , {-# SCC "Prelude::fpIsPositive" #-}  pred1 fpIsPositive)
+  , ("fpIsNormal"   , {-# SCC "Prelude::fpIsNormal" #-}    pred1 fpIsNormal)
+  , ("fpIsSubNormal", {-# SCC "Prelude::fpIsSubNormal" #-} pred1 fpIsSubNormal)
+
+  , ("fpAdd",         {-# SCC "Prelude::fpAdd" #-} bin fpAdd)
+  , ("fpSub",         {-# SCC "Prelude::fpSub" #-} bin fpSub)
+  , ("fpMul",         {-# SCC "Prelude::fpMul" #-} bin fpMul)
+  , ("fpDiv",         {-# SCC "Prelude::fpAdd" #-} bin fpDiv)
   ]
+
+  where
+  pred1 p = nlam $ \_m ->
+            nlam $ \_n ->
+            lam  $ \fv -> do ~(VFloat v) <- fv
+                             VBit <$> p v
+
+  bin f   = nlam $ \_m ->
+            nlam $ \_n ->
+            wlam $ \r  -> pure $
+             lam $ \x  -> pure $
+             lam $ \y  -> do ~(VFloat a) <- x
+                             ~(VFloat b) <- y
+                             VFloat <$> f r a b
+
 
 -- | Make a numeric literal value at the given type.
 mkLit :: BitWord p => TValue -> Integer -> GenValue p
@@ -732,6 +772,8 @@ zeroV ty = case ty of
   -- integers mod n
   TVIntMod _ ->
     VInteger (integerLit 0)
+
+  TVFloat m n -> VFloat (floatZero m n)
 
   -- sequences
   TVSeq w ety

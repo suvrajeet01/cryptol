@@ -132,7 +132,7 @@ typeValues ty =
         TCSeq       ->
           case map tNoUser ts of
             [ TCon (TC (TCNum n)) _, TCon (TC TCBit) [] ] ->
-              [ VWord n (ready (WordVal (BV n x))) | x <- [ 0 .. 2^n - 1 ] ]
+              [ VWord n (ready (WordVal (mkBv n x))) | x <- [ 0 .. 2^n - 1 ] ]
 
             [ TCon (TC (TCNum n)) _, t ] ->
               [ VSeq n (finiteSeqMap (map ready xs))

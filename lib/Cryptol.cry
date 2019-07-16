@@ -890,7 +890,6 @@ type Float256 = Float 237 19
 
 
 
-
 /** Standard rounding modes. */
 type RoundingMode = [3]
 
@@ -920,13 +919,10 @@ roundZero         = 4
 rtz               = roundZero
 
 
-/** A floating point number using the exact bit pattern. */
+/** A floating point number using the exact bit pattern,
+in IEEE interchange format. */
 primitive
   fp : {m,n} ValidFloat (m+1) n => Bit -> [m] -> [n] -> Float (m + 1) n
-
-/** Convert a bit-pattern into a floating point number. */
-primitive
-  fpFromBits : {m,n} ValidFloat m n => [m + n] -> Float m n
 
 /** Change the precision of a floating point number. */
 primitive

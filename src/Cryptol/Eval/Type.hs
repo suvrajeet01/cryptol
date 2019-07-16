@@ -47,6 +47,7 @@ tValTy tv =
     TVBit       -> tBit
     TVInteger   -> tInteger
     TVIntMod n  -> tIntMod (tNum n)
+    TVReal      -> tReal
     TVFloat s e -> tFloat (tNum s) (tNum e)
     TVSeq n t   -> tSeq (tNum n) (tValTy t)
     TVStream t  -> tSeq tInf (tValTy t)

@@ -9,6 +9,7 @@
 {-# LANGUAGE Safe #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Cryptol.Eval.Monad
 ( -- * Evaluation monad
@@ -34,6 +35,7 @@ module Cryptol.Eval.Monad
 , cryLoopError
 , cryNoPrimError
 , invalidIndex
+, unsupportedFloat
 ) where
 
 import           Control.DeepSeq
@@ -46,7 +48,7 @@ import qualified Control.Exception as X
 
 
 import Cryptol.Utils.Panic
-import Cryptol.Utils.PP
+import Cryptol.Utils.PP as PP
 import Cryptol.Utils.Logger(Logger)
 import Cryptol.TypeCheck.AST(Type,Name)
 
@@ -205,6 +207,7 @@ data EvalError
   | UserError String              -- ^ Call to the Cryptol @error@ primitive
   | LoopError String              -- ^ Detectable nontermination
   | NoPrim Name                   -- ^ Primitive with no implementation
+  | UnsupportedFloat Integer Integer  -- ^ We can't deal with floats like this
     deriving (Typeable,Show)
 
 instance PP EvalError where
@@ -219,6 +222,9 @@ instance PP EvalError where
     UserError x -> text "Run-time error:" <+> text x
     LoopError x -> text "<<loop>>" <+> text x
     NoPrim x -> text "unimplemented primitive:" <+> pp x
+    UnsupportedFloat m eb ->
+      "unsupported float precision" <+>
+        braces ("m =" <+> integer m <.> comma <+> "e =" <+> integer eb)
 
 instance X.Exception EvalError
 
@@ -258,3 +264,7 @@ cryLoopError msg = io (X.throwIO (LoopError msg))
 -- | A sequencing operation has gotten an invalid index.
 invalidIndex :: Integer -> Eval a
 invalidIndex i = io (X.throwIO (InvalidIndex i))
+
+-- | We do not support floats of this shape
+unsupportedFloat :: Integer -> Integer -> Eval a
+unsupportedFloat m e = io (X.throwIO (UnsupportedFloat m e))

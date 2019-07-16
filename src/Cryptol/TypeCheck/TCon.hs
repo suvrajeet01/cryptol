@@ -195,7 +195,7 @@ data TC     = TCNum Integer            -- ^ Numbers
             | TCInteger                -- ^ Integer
             | TCIntMod                 -- ^ @Z _@
             | TCReal                   -- ^ @Real@
-            | TCFloat                  -- ^ @Floating _ _@
+            | TCFloat                  -- ^ @Float _ _@
             | TCSeq                    -- ^ @[_] _@
             | TCFun                    -- ^ @_ -> _@
             | TCTuple Int              -- ^ @(_, _, _)@
@@ -293,7 +293,7 @@ instance PP TC where
       TCInteger -> text "Integer"
       TCIntMod  -> text "Z"
       TCReal    -> text "Real"
-      TCFloat   -> text "Floating"
+      TCFloat   -> text "Float"
       TCSeq     -> text "[]"
       TCFun     -> text "(->)"
       TCTuple 0 -> text "()"

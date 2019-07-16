@@ -16,8 +16,8 @@ import Cryptol.Utils.Panic(panic)
 
 
 -- | A floating point value annotated with its precision parameters.
-data FV = FV { fvPrecBits :: !Word64      -- ^ precision bits
-             , fvExpBits  :: !Word64      -- ^ exponent bits
+data FV = FV { fvExpBits  :: !Word64      -- ^ exponent bits
+             , fvPrecBits :: !Word64      -- ^ precision bits
              , fvValue    :: !BigFloat
              }
 
@@ -30,7 +30,7 @@ instance NFData FV where
 
 
 supportedFloat :: Integer -> Integer -> Bool
-supportedFloat mBits eBits =
+supportedFloat eBits mBits =
   eBits >= fromIntegral expBitsMin &&
   eBits <= fromIntegral expBitsMax &&
   mBits >= fromIntegral precMin &&
@@ -43,39 +43,45 @@ ppFV b fv = text (bfToString b fmt (fvValue fv))
   fmt = addPrefix <> showFreeMin (Just (fvPrecBits fv))
 
 fp :: Bool -> BV -> BV -> Eval FV
-fp sig mBits eBits
-  | mv == 0 && ev == 0  = fv (if sig then bfNegZero else bfPosZero)
-  | mv == 0 && isMaxExp = fv (if sig then bfNegInf else bfPosInf)
-  | isMaxExp            = fv bfNaN
-  | otherwise           = fv (if sig then bfNeg num else num)
+fp sig inExp inMant
+  | expoBiased == 0 && mantVal == 0 = fv (if sig then bfNegZero else bfPosZero)
+  | isMaxExp        && mantVal == 0 = fv (if sig then bfNegInf else bfPosInf)
+  | isMaxExp                        = fv bfNaN
+  | otherwise                       = fv (if sig then bfNeg num else num)
   where
-  m         = bvWidth mBits
-  n         = bvWidth eBits
+  iExpoBits   = bvWidth inExp
+  iPrecBits   = bvWidth inMant  -- one less than actual precision
 
-  mv        = bvVal mBits
-  ev        = bvVal eBits :: Integer
-  isMaxExp  = ev == allOnes
-  allOnes   = (1 `shiftL` fromIntegral n) - 1
-  bias      = allOnes `shiftR` 1
+  mantVal     = bvVal inMant
+  expoBiased  = bvVal inExp
 
-  realExp   = fromIntegral (ev - bias - m)
-  integ     = if ev == 0 then mv else (mv `setBit` fromIntegral m)
-  (num,Ok)  = bfMul2Exp infPrec (bfFromInteger integ) realExp
+  isMaxExp    = expoBiased == allOnes
+  allOnes     = (1 `shiftL` fromIntegral iExpoBits) - 1
+  bias        = allOnes `shiftR` 1
 
-  fv x | supportedFloat m n = pure $! FV { fvPrecBits = fromIntegral (m+1)
-                                         , fvExpBits  = fromIntegral n
-                                         , fvValue    = x
-                                         }
-       | otherwise = unsupportedFloat m n
+  expoVal     = fromIntegral (expoBiased - bias - iPrecBits)
+  mant        | expoBiased == 0 = mantVal
+              | otherwise       = mantVal `setBit` fromIntegral iPrecBits
+  (num,Ok)    = bfMul2Exp infPrec (bfFromInteger mant) expoVal
+
+
+  iPrec       = iPrecBits + 1
+
+  fv x | supportedFloat iExpoBits iPrec =
+         pure $! FV { fvPrecBits = fromIntegral iPrec
+                    , fvExpBits  = fromIntegral iExpoBits
+                    , fvValue    = x
+                    }
+       | otherwise = unsupportedFloat iExpoBits iPrec
 
 
 fpZero :: Integer -> Integer -> FV
-fpZero m n
-  | supportedFloat m n = FV { fvPrecBits = fromIntegral m
-                            , fvExpBits  = fromIntegral n
+fpZero e p
+  | supportedFloat e p = FV { fvPrecBits = fromIntegral p
+                            , fvExpBits  = fromIntegral e
                             , fvValue    = bfPosZero
                             }
-  | otherwise = throw (UnsupportedFloat m n)
+  | otherwise = throw (UnsupportedFloat e p)
 
 
 liftPred1 :: (BigFloat -> Bool) -> FV -> Eval Bool

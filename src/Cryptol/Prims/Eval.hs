@@ -220,12 +220,12 @@ primTable = Map.fromList $ map (\(n, v) -> (mkIdent (T.pack n), v)) $
 
 floatPrims =
   [ ("fp"        , {-# SCC "Prelude::fp" #-}
-                    nlam $ \ _m ->
-                    nlam $ \ _n ->
+                    nlam $ \ _e ->
+                    nlam $ \ _p ->
                     lam  $ \ sign -> pure $
-                    wlam $ \ prec -> pure $
-                    wlam $ \ expo -> do ~(VBit s) <- sign
-                                        VFloat <$> fp s prec expo)
+                    wlam $ \ expo -> pure $
+                    wlam $ \ prec -> do ~(VBit s) <- sign
+                                        VFloat <$> fp s expo prec)
 
   , ("fpIsInf"      , {-# SCC "Prelude::fpIsInf" #-}       pred1 fpIsInf)
   , ("fpIsNaN"      , {-# SCC "Prelude::fpIsNaN" #-}       pred1 fpIsNaN)
@@ -242,13 +242,13 @@ floatPrims =
   ]
 
   where
-  pred1 p = nlam $ \_m ->
-            nlam $ \_n ->
+  pred1 p = nlam $ \_e ->
+            nlam $ \_p ->
             lam  $ \fv -> do ~(VFloat v) <- fv
                              VBit <$> p v
 
-  bin f   = nlam $ \_m ->
-            nlam $ \_n ->
+  bin f   = nlam $ \_e ->
+            nlam $ \_p ->
             wlam $ \r  -> pure $
              lam $ \x  -> pure $
              lam $ \y  -> do ~(VFloat a) <- x

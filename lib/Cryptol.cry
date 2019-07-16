@@ -867,26 +867,26 @@ iterate f x = [x] # [ f v | v <- iterate f x ]
 /** The type of real numbers. */
 primitive type Real : *
 
-type constraint ValidFloat m n = (fin m, fin n, m >= 1, n >= 1)
+type constraint ValidFloat e p = (fin e, fin p, e >= 1, p >= 1)
 
 /** IEEE-754 floating point numbers. */
-primitive type { mantissa : #, exponent : #}
-  ValidFloat mantissa exponent => Float mantissa exponent : *
+primitive type { exponent : #, precision : #}
+  ValidFloat exponent precision => Float exponent precision : *
 
 /** An abbreviation for common 16-bit floating point numbers. */
-type Float16  = Float 11 5
+type Float16  = Float 5 11
 
 /** An abbreviation for common 32-bit floating point numbers. */
-type Float32  = Float 24 8
+type Float32  = Float 8 24
 
 /** An abbreviation for common 64-bit floating point numbers. */
-type Float64  = Float 53 11
+type Float64  = Float 11 53
 
 /** An abbreviation for common 128-bit floating point numbers. */
-type Float128 = Float 113 15
+type Float128 = Float 15 113
 
 /** An abbreviation for common 256-bit floating point numbers. */
-type Float256 = Float 237 19
+type Float256 = Float 19 237
 
 
 
@@ -922,139 +922,131 @@ rtz               = roundZero
 /** A floating point number using the exact bit pattern,
 in IEEE interchange format. */
 primitive
-  fp : {m,n} ValidFloat (m+1) n => Bit -> [m] -> [n] -> Float (m + 1) n
+  fp : {e,p} ValidFloat e (p+1) => Bit -> [e] -> [p] -> Float e (p + 1)
 
 /** Change the precision of a floating point number. */
 primitive
-  fpFromFloat : {m,n, p,q} (ValidFloat m n, ValidFloat p q) =>
-    RoundingMode -> Float m n -> Float p q
+  fpFromFloat : {e1,p1,e2,p2} (ValidFloat e1 p1, ValidFloat e2 p2) =>
+    RoundingMode -> Float e1 p1 -> Float e2 p2
 
 /** Conver a real to a floating point number, using the given rounding mode. */
 primitive
-  fpFromReal : {m,n} ValidFloat m n => RoundingMode -> Real -> Float m n
+  fpFromReal : {e,p} ValidFloat e p => RoundingMode -> Real -> Float e p
 
 /** Convert 2s complement integer into a floating point number. */
 primitive
-  fpFromSignedInt : {i,m,n} ValidFloat m n => RoundingMode -> [i] -> Float m n
+  fpFromSignedInt : {e,p,n} ValidFloat e p => RoundingMode -> [n] -> Float e p
 
 
 /** Convert an unsigned integer into a floating point number. */
 primitive
-  fpFromUnsignedInt : {i,m,n} ValidFloat m n => RoundingMode -> [i] -> Float m n
+  fpFromUnsignedInt : {e,p,n} ValidFloat e p => RoundingMode -> [n] -> Float e p
 
 /** Convert a float into an unsigned machine integer.
 Undefined for infinities.
 Also undefined for numbers that do not fit in the result type.
 (e.g., negative numbers). */
 primitive
-  fpToUnsignedInt : {i,m,n} ValidFloat m n => RoundingMode -> Float m n -> [i]
+  fpToUnsignedInt : {n,e,p} ValidFloat e p => RoundingMode -> Float e p -> [n]
 
 /** Convert a float into a 2s complement signed machine integer.
 Undefined for infinities, NaN, and numbers out of range.
 Also undefined for numbers that do not fit in the result type.
  */
 primitive
-  fpToSignedInt : {i,m,n} ValidFloat m n => RoundingMode -> Float m n -> [i]
+  fpToSignedInt : {e,p,n} ValidFloat e p => RoundingMode -> Float e p -> [n]
 
 /** Convert a float into a 2s complement signed machine integer.
 Undefined for infinities and NaN */
 primitive
-  fpToReal : {m,n} ValidFloat m n => Float m n -> Real
-
-
-
-
+  fpToReal : {e,p} ValidFloat e p => Float e p -> Real
 
 
 /** Positive infinity. */
 primitive
-  fpPosInf : {m,n} ValidFloat m n => Float m n
+  fpPosInf : {e,p} ValidFloat e p => Float e p
 
 /** Negaitve infinity. */
-fpNegInf : {m,n} ValidFloat m n => Float m n
+fpNegInf : {e,p} ValidFloat e p => Float e p
 fpNegInf = negate fpPosInf
 
 /** Not a number. */
 primitive
-  fpNaN : {m,n} ValidFloat m n => Float m n
+  fpNaN : {e,p} ValidFloat e p => Float e p
 
 
 /** Absolute value. */
 primitive
-  fpAbs : {m,n} ValidFloat m n => Float m n -> Float m n
+  fpAbs : {e,p} ValidFloat e p => Float e p -> Float e p
 
-// negate
+// negate in Arith
 
 /** Add floating point numbers using the given rounding mode. */
 primitive
-  fpAdd : {m,n} ValidFloat m n =>
-    RoundingMode -> Float m n -> Float m n -> Float m n
+  fpAdd : {e,p} ValidFloat e p =>
+    RoundingMode -> Float e p -> Float e p -> Float e p
 
 /** Subtract floating point numbers using the given rounding mode. */
 primitive
-  fpSub : {m,n} ValidFloat m n =>
-    RoundingMode -> Float m n -> Float m n -> Float m n
+  fpSub : {e,p} ValidFloat e p =>
+    RoundingMode -> Float e p -> Float e p -> Float e p
 
 /** Multiply floating point numbers using the given rounding mode. */
 primitive
-  fpMul : {m,n} ValidFloat m n =>
-    RoundingMode -> Float m n -> Float m n -> Float m n
+  fpMul : {e,p} ValidFloat e p =>
+    RoundingMode -> Float e p -> Float e p -> Float e p
 
 /** Divide floating point numbers using the given rounding mode. */
 primitive
-  fpDiv : {m,n} ValidFloat m n =>
-    RoundingMode -> Float m n -> Float m n -> Float m n
+  fpDiv : {e,p} ValidFloat e p =>
+    RoundingMode -> Float e p -> Float e p -> Float e p
 
 /** `fpMulAdd r x y z` performs `x * y + z` and rounds after */
 primitive
-  fpMulAdd : {m,n} ValidFloat m n =>
-    RoundingMode -> Float m n -> Float m n -> Float m n -> Float m n
+  fpMulAdd : {e,p} ValidFloat e p =>
+    RoundingMode -> Float e p -> Float e p -> Float e p -> Float e p
 
 /** Compute the square root of the inputm, using the given rounding mode. */
 primitive
-  fpSqrt : {m,n} ValidFloat m n =>
-    RoundingMode -> Float m n -> Float m n
+  fpSqrt : {e,p} ValidFloat e p => RoundingMode -> Float e p -> Float e p
 
 // `rem` is `(%)
 //  x - y * n, where n in Z is nearest to x/y
 
 /** Round to an integral number */
 primitive
-  fpRound : {m,n} ValidFloat m n =>
-    RoundingMode -> Float m n -> Float m n
+  fpRound : {e,p} ValidFloat e p => RoundingMode -> Float e p -> Float e p
 
 /** The smaller of two floats. */
 primitive
-  fpMin : {m,n} ValidFloat m n =>
-    Float m n -> Float m n -> Float m n
+  fpMin : {e,p} ValidFloat e p => Float e p -> Float e p -> Float e p
 
 /** The larger of two floats. */
 primitive
-  fpMax : {m,n} ValidFloat m n =>
-    Float m n -> Float m n -> Float m n
+  fpMax : {e,p} ValidFloat e p => Float e p -> Float e p -> Float e p
 
 // leq,let,geq,gt,eq from Cmp class
 
 /** Is this float in normal form. */
-primitive fpIsNormal : {m,n} ValidFloat m n => Float m n -> Bool
+primitive fpIsNormal : {e,p} ValidFloat e p => Float e p -> Bool
 
 /** Is this float denormalized. */
-primitive fpIsSubNormal : {m,n} ValidFloat m n => Float m n -> Bool
+primitive fpIsSubNormal : {e,p} ValidFloat e p => Float e p -> Bool
 
 /** Is this float a zero */
-primitive fpIsZero : {m,n} ValidFloat m n => Float m n -> Bool
+primitive fpIsZero : {e,p} ValidFloat e p => Float e p -> Bool
 
 /** Is this float an infinity */
-primitive fpIsInf : {m,n} ValidFloat m n => Float m n -> Bool
+primitive fpIsInf : {e,p} ValidFloat e p => Float e p -> Bool
 
 /** Is this float NaN */
-primitive fpIsNaN : {m,n} ValidFloat m n => Float m n -> Bool
+primitive fpIsNaN : {e,p} ValidFloat e p => Float e p -> Bool
 
 /** Is this float negative */
-primitive fpIsNegative : {m,n} ValidFloat m n => Float m n -> Bool
+primitive fpIsNegative : {e,p} ValidFloat e p => Float e p -> Bool
 
 /** Is this float positive */
-primitive fpIsPositive : {m,n} ValidFloat m n => Float m n -> Bool
+primitive fpIsPositive : {e,p} ValidFloat e p => Float e p -> Bool
 
 
 

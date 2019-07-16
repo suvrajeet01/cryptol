@@ -7,7 +7,6 @@
 -- Portability :  portable
 --
 -- Compile the prelude into the executable as a last resort
-
 {-# LANGUAGE Safe #-}
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE QuasiQuotes #-}

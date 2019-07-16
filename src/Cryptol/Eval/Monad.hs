@@ -222,9 +222,9 @@ instance PP EvalError where
     UserError x -> text "Run-time error:" <+> text x
     LoopError x -> text "<<loop>>" <+> text x
     NoPrim x -> text "unimplemented primitive:" <+> pp x
-    UnsupportedFloat m eb ->
+    UnsupportedFloat eb pb ->
       "unsupported float precision" <+>
-        braces ("m =" <+> integer m <.> comma <+> "e =" <+> integer eb)
+        braces ("e =" <+> integer eb <.> comma <+> "p =" <+> integer pb)
 
 instance X.Exception EvalError
 

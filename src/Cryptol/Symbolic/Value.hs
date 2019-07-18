@@ -27,6 +27,7 @@ module Cryptol.Symbolic.Value
   , fromSeq, fromVWord
   , evalPanic
   , iteSValue, mergeValue, mergeWord, mergeBit, mergeBits, mergeSeqMap
+  , mergeSeqMapBit
   , mergeWord'
   )
   where
@@ -41,7 +42,7 @@ import Data.SBV.Dynamic
 --import Cryptol.Eval.Monad
 import Cryptol.Eval.Type   (TValue(..), isTBit, tvSeq)
 import Cryptol.Eval.Monad  (Eval, ready)
-import Cryptol.Eval.SeqMap(SeqMap(..),lookupSeqMap,memoMap)
+import Cryptol.Eval.SeqMap(SeqMap,memoMap,mergeSeqMapWith)
 import Cryptol.Eval.Value  ( GenValue(..), BitWord(..), lam, tlam, toStream,
                            toFinSeq, toSeq, WordValue(..),
                            fromSeq, fromVBit, fromVWord, fromVFun, fromVPoly,
@@ -126,7 +127,8 @@ mergeWord f c (BitsVal xs) (WordVal w2) =
 mergeWord f c (BitsVal xs) (BitsVal ys) =
     BitsVal $ mergeBits f c xs ys
 mergeWord f c w1 w2 =
-    LargeBitsVal (wordValueSize w1) (mergeSeqMap f c (asBitsMap w1) (asBitsMap w2))
+    LargeBitsVal (wordValueSize w1)
+                 (mergeSeqMapBit f c (asBitsMap w1) (asBitsMap w2))
 
 mergeWord' :: Bool
            -> SBool
@@ -142,6 +144,9 @@ mergeBits :: Bool
           -> Seq.Seq (Eval SBool)
 mergeBits f c bs1 bs2 = Seq.zipWith mergeBit' bs1 bs2
  where mergeBit' b1 b2 = mergeBit f c <$> b1 <*> b2
+
+mergeSeqMapBit :: Bool -> SBool -> SeqMap SBool -> SeqMap SBool -> SeqMap SBool
+mergeSeqMapBit f c = mergeSeqMapWith (\a b -> pure $! mergeBit f c a b)
 
 mergeInteger :: Bool
              -> SBool
@@ -177,11 +182,8 @@ mergeValue' f c x1 x2 =
      mergeValue f c v1 v2
 
 mergeSeqMap :: Bool -> SBool -> SeqMapV EvalSym -> SeqMapV EvalSym -> SeqMapV EvalSym
-mergeSeqMap f c x y =
-  IndexSeqMap $ \i ->
-  do xi <- lookupSeqMap x i
-     yi <- lookupSeqMap y i
-     mergeValue f c xi yi
+mergeSeqMap f c = mergeSeqMapWith (mergeValue f c)
+
 
 -- Symbolic Big-endian Words -------------------------------------------------------
 

@@ -3,7 +3,6 @@ module Cryptol.Eval.SeqMap where
 import Data.IORef
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
-import MonadLib
 import Data.List(genericIndex)
 import Control.DeepSeq
 
@@ -15,6 +14,12 @@ import Cryptol.Eval.Monad
 data SeqMap a
   = IndexSeqMap  !(Integer -> Eval a)
   | UpdateSeqMap !(Map Integer (Eval a)) !(Integer -> Eval a)
+
+instance Functor SeqMap where
+  fmap f mp =
+    case mp of
+      IndexSeqMap i    -> IndexSeqMap                 (\n -> f <$> i n)
+      UpdateSeqMap m i -> UpdateSeqMap (fmap f <$> m) (\n -> f <$> i n)
 
 lookupSeqMap :: SeqMap a -> Integer -> Eval a
 lookupSeqMap (IndexSeqMap f) i = f i
@@ -102,12 +107,22 @@ memoMap x = do
 
 -- | Apply the given evaluation function pointwise to the two given
 --   sequence maps.
-zipSeqMap :: (a -> a -> Eval a) -> SeqMap a -> SeqMap a -> Eval (SeqMap a)
+zipSeqMap :: (a -> b -> Eval c) -> SeqMap a -> SeqMap b -> Eval (SeqMap c)
 zipSeqMap f x y =
-  memoMap (IndexSeqMap $ \i -> join (f <$> lookupSeqMap x i <*> lookupSeqMap y i))
+  memoMap $ IndexSeqMap $ \i -> do a <- lookupSeqMap x i
+                                   b <- lookupSeqMap y i
+                                   f a b
 
 -- | Apply the given function to each value in the given sequence map
-mapSeqMap :: (a -> Eval a) -> SeqMap a -> Eval (SeqMap a)
-mapSeqMap f x =
-  memoMap (IndexSeqMap $ \i -> f =<< lookupSeqMap x i)
+mapSeqMap :: (a -> Eval b) -> SeqMap a -> Eval (SeqMap b)
+mapSeqMap f x = memoMap (IndexSeqMap $ \i -> f =<< lookupSeqMap x i)
+
+mergeSeqMapWith :: (a -> b -> Eval c) -> SeqMap a -> SeqMap b -> SeqMap c
+mergeSeqMapWith f x y =
+  IndexSeqMap $ \i ->
+  do xi <- lookupSeqMap x i
+     yi <- lookupSeqMap y i
+     f xi yi
+
+
 

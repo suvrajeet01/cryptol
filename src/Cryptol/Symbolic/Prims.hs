@@ -260,9 +260,9 @@ logicShift nm wop reindex =
                    do idx_bits <- enumerateWordValue idx
                       let op bs shft = memoMap $ IndexSeqMap $ \i ->
                                          case reindex (Nat w) i shft of
-                                           Nothing -> return $ VBit $ bitLit False
+                                           Nothing -> return $ bitLit False
                                            Just i' -> lookupSeqMap bs i'
-                      LargeBitsVal n <$> shifter (mergeSeqMap True) op bs0 idx_bits
+                      LargeBitsVal n <$> shifter (mergeSeqMapBit True) op bs0 idx_bits
 
           VSeq w vs0 ->
              do idx_bits <- enumerateWordValue idx
@@ -416,7 +416,9 @@ updateFrontSym_word (Nat n) eltTy bv wv val =
         WordVal bw -> return $ BitsVal $ Seq.mapWithIndex f bs
                         where bs = fmap return $ Seq.fromList $ unpackWord bw
         BitsVal bs -> return $ BitsVal $ Seq.mapWithIndex f bs
-        LargeBitsVal l vs -> LargeBitsVal l <$> updateFrontSym (Nat n) eltTy vs wv val
+        LargeBitsVal l vs ->
+          do vs' <- updateFrontSym (Nat n) eltTy (VBit <$> vs) wv val
+             pure (LargeBitsVal l (fmap fromVBit vs'))
   where
     f :: Int -> Eval SBool -> Eval SBool
     f i x = do c <- wordValueEqualsInteger wv (toInteger i)
@@ -458,7 +460,9 @@ updateBackSym_word (Nat n) eltTy bv wv val = do
         WordVal bw -> return $ BitsVal $ Seq.mapWithIndex f bs
                         where bs = fmap return $ Seq.fromList $ unpackWord bw
         BitsVal bs -> return $ BitsVal $ Seq.mapWithIndex f bs
-        LargeBitsVal l vs -> LargeBitsVal l <$> updateBackSym (Nat n) eltTy vs wv val
+        LargeBitsVal l vs ->
+          do vs' <- updateBackSym (Nat n) eltTy (VBit <$> vs) wv val
+             pure (LargeBitsVal l (fromVBit <$> vs'))
   where
     f :: Int -> Eval SBool -> Eval SBool
     f i x = do c <- wordValueEqualsInteger wv (n - 1 - toInteger i)

@@ -871,7 +871,7 @@ joinSeq (Nat parts) each TVBit xs
   = do let zs = IndexSeqMap $ \i ->
                   do let (q,r) = divMod i each
                      ys <- fromWordVal "join seq" =<< lookupSeqMap xs q
-                     VBit <$> indexWordValue ys (fromInteger r)
+                     indexWordValue ys (fromInteger r)
        return $ VWord (parts * each) $ ready $ LargeBitsVal (parts * each) zs
 
 -- infinite sequence of words
@@ -1125,10 +1125,9 @@ wordValLogicOp bop _ (WordVal w1) (BitsVal ys) =
 wordValLogicOp bop _ (BitsVal xs) (WordVal w2) =
   ready $ BitsVal $ Seq.zipWith (\x y -> bop <$> x <*> y) xs (Seq.fromList $ map ready $ unpackWord w2)
 wordValLogicOp bop _ w1 w2 = LargeBitsVal (wordValueSize w1) <$> zs
-     where zs = memoMap $ IndexSeqMap $ \i -> op <$> (lookupSeqMap xs i) <*> (lookupSeqMap ys i)
+     where zs = memoMap $ IndexSeqMap $ \i -> bop <$> (lookupSeqMap xs i) <*> (lookupSeqMap ys i)
            xs = asBitsMap w1
            ys = asBitsMap w2
-           op x y = VBit (bop (fromVBit x) (fromVBit y))
 
 -- | Merge two values given a binop.  This is used for and, or and xor.
 logicBinary :: forall p
@@ -1198,11 +1197,10 @@ wordValUnaryOp :: BitWord p
                => (VBool p -> VBool p)
                -> (VWord p -> VWord p)
                -> WordValue p
-               -> Eval (WordValue p)
-wordValUnaryOp _ wop (WordVal w)  = return $ WordVal (wop w)
-wordValUnaryOp bop _ (BitsVal bs) = return $ BitsVal (fmap (bop <$>) bs)
-wordValUnaryOp bop _ (LargeBitsVal n xs) = LargeBitsVal n <$> mapSeqMap f xs
-  where f x = VBit . bop <$> fromBit x
+               -> WordValue p
+wordValUnaryOp _ wop (WordVal w)  = WordVal (wop w)
+wordValUnaryOp bop _ (BitsVal bs) = BitsVal (fmap (bop <$>) bs)
+wordValUnaryOp bop _ (LargeBitsVal n xs) = LargeBitsVal n (bop <$> xs)
 
 logicUnary :: forall p
             . BitWord p
@@ -1224,7 +1222,7 @@ logicUnary opb opw = loop
     TVSeq w ety
          -- words
          | isTBit ety
-              -> do v <- delay Nothing (wordValUnaryOp opb opw =<< fromWordVal "logicUnary" val)
+              -> do v <- delay Nothing (wordValUnaryOp opb opw <$> fromWordVal "logicUnary" val)
                     return $ VWord w v
 
          -- finite sequences
@@ -1256,7 +1254,7 @@ logicShift :: (Integer -> Integer -> Integer -> Integer)
               -- ^ The function may assume its arguments are masked.
               -- It is responsible for masking its result if needed.
            -> (Integer -> Seq.Seq (Eval Bool) -> Integer -> Seq.Seq (Eval Bool))
-           -> (Nat' -> TValue -> SeqValMap -> Integer -> SeqValMap)
+           -> (Nat' -> TValue -> SeqMapV EvalConc -> Integer -> SeqMapV EvalConc)
            -> Value
 logicShift opW obB opS
   = nlam $ \ a ->
@@ -1269,7 +1267,10 @@ logicShift opW obB opS
           VWord w wv -> return $ VWord w $ wv >>= \case
                           WordVal (BV _ x) -> return $ WordVal (BV w (opW w x i))
                           BitsVal bs -> return $ BitsVal (obB w bs i)
-                          LargeBitsVal n xs -> return $ LargeBitsVal n $ opS (Nat n) c xs i
+                          LargeBitsVal n xs ->
+                            return $ LargeBitsVal n $
+                                     fmap fromVBit $
+                                     opS (Nat n) c (fmap VBit xs) i
 
           _ -> mkSeq a c <$> (opS a c <$> (fromSeq "logicShift" =<< l) <*> return i)
 
@@ -1374,7 +1375,8 @@ indexPrim bits_op word_op =
          VWord _ w -> w >>= \case
            WordVal w' -> word_op (fromNat n) a vs w'
            BitsVal bs -> bits_op (fromNat n) a vs =<< sequence bs
-           LargeBitsVal m xs -> bits_op (fromNat n) a vs . Seq.fromList =<< traverse (fromBit =<<) (enumerateSeqMap m xs)
+           LargeBitsVal m xs -> bits_op (fromNat n) a vs . Seq.fromList =<<
+                                              sequence (enumerateSeqMap m xs)
          _ -> evalPanic "Expected word value" ["indexPrim"]
 
 indexFront :: Maybe Integer -> TValue -> SeqValMap -> BV -> Eval Value

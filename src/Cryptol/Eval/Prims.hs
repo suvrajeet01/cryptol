@@ -30,6 +30,7 @@ import qualified Cryptol.Eval.Arch as Arch
 import Cryptol.Eval.Monad
 import Cryptol.Eval.Type
 import Cryptol.Eval.Value
+import Cryptol.Eval.Concrete
 import Cryptol.Eval.SeqMap
 import Cryptol.Eval.Float
 import Cryptol.Testing.Random (randomValue)

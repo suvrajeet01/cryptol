@@ -51,18 +51,12 @@ import           LibBF(RoundMode)
 import Cryptol.Utils.Panic
 import Cryptol.Utils.PP as PP
 import Cryptol.Utils.Logger(Logger)
+import Cryptol.Eval.PP
 import Cryptol.TypeCheck.AST(Type,Name)
 
 -- | A computation that returns an already-evaluated value.
 ready :: a -> Eval a
 ready a = Ready a
-
--- | How to pretty print things when evaluating
-data PPOpts = PPOpts
-  { useAscii     :: Bool
-  , useBase      :: Int
-  , useInfLength :: Int
-  }
 
 -- | Some options for evalutaion
 data EvalOpts = EvalOpts

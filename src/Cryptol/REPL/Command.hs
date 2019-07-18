@@ -59,6 +59,7 @@ import qualified Cryptol.ModuleSystem.Env as M
 
 import qualified Cryptol.Eval.Monad as E
 import qualified Cryptol.Eval.Value as E
+import qualified Cryptol.Eval.Concrete as E
 import qualified Cryptol.Eval.SeqMap as E
 import qualified Cryptol.Eval.Reference as R
 import Cryptol.Testing.Concrete

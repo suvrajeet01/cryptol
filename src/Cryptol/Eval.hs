@@ -35,6 +35,8 @@ import Cryptol.Eval.Env
 import Cryptol.Eval.Monad
 import Cryptol.Eval.Type
 import Cryptol.Eval.Value
+import Cryptol.Eval.Concrete
+import Cryptol.Eval.PP
 import Cryptol.Eval.SeqMap
 import Cryptol.Parser.Selector(ppSelector)
 import Cryptol.ModuleSystem.Name

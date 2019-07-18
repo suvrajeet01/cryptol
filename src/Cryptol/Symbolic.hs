@@ -36,6 +36,7 @@ import Cryptol.Symbolic.Prims
 import Cryptol.Symbolic.Value
 
 import qualified Cryptol.Eval as Eval
+import qualified Cryptol.Eval.Concrete as Eval
 import qualified Cryptol.Eval.SeqMap as Eval
 import qualified Cryptol.Eval.Monad as Eval
 import qualified Cryptol.Eval.Type as Eval

@@ -33,7 +33,7 @@ module Cryptol.ModuleSystem (
   ) where
 
 import qualified Cryptol.Eval as E
-import qualified Cryptol.Eval.Value        as E
+import qualified Cryptol.Eval.Concrete as E
 import           Cryptol.ModuleSystem.Env
 import           Cryptol.ModuleSystem.Interface
 import           Cryptol.ModuleSystem.Monad

@@ -162,7 +162,9 @@ library
                        Cryptol.Eval.SeqMap,
                        Cryptol.Eval.BV,
                        Cryptol.Eval.Float,
+                       Cryptol.Eval.Concrete,
                        Cryptol.Eval.Prims,
+                       Cryptol.Eval.PP
 
                        Cryptol.Testing.Concrete,
                        Cryptol.Testing.Random,

@@ -24,7 +24,7 @@ import Cryptol.ModuleSystem.Env (lookupModule
                                 , meCoreLint, CoreLint(..)
                                 , ModulePath(..), modulePathLabel)
 import qualified Cryptol.Eval                 as E
-import qualified Cryptol.Eval.Value           as E
+import qualified Cryptol.Eval.Concrete        as E
 import           Cryptol.Eval.Prims()
 import qualified Cryptol.ModuleSystem.NamingEnv as R
 import qualified Cryptol.ModuleSystem.Renamer as R

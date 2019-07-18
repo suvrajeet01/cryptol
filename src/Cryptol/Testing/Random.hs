@@ -12,7 +12,8 @@
 module Cryptol.Testing.Random where
 
 import Cryptol.Eval.Monad     (ready,runEval,EvalOpts)
-import Cryptol.Eval.Value     (Value,GenValue(..), WordValue(..), BitWord(..), EvalConc)
+import Cryptol.Eval.Value     (GenValue(..), WordValue(..), BitWord(..))
+import Cryptol.Eval.Concrete (Value,EvalConc)
 import Cryptol.Eval.SeqMap    (SeqMap(..))
 import qualified Cryptol.Testing.Concrete as Conc
 import Cryptol.TypeCheck.AST  (Type(..),TCon(..),TC(..),tNoUser)
@@ -28,7 +29,6 @@ import System.Random          (RandomGen, split, random, randomR)
 import qualified Data.Sequence as Seq
 
 type Gen g p = Integer -> g -> (GenValue p, g)
-
 
 {- | Apply a testable value to some randomly-generated arguments.
      Returns `Nothing` if the function returned `True`, or

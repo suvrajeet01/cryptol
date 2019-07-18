@@ -36,6 +36,9 @@ import qualified Data.Sequence as Seq
 import qualified Data.Foldable as Fold
 import MonadLib
 import qualified Data.Kind as HS (Type,Constraint)
+import Data.List(genericDrop)
+import GHC.Generics (Generic)
+import Control.DeepSeq
 
 import Cryptol.Eval.Monad
 import Cryptol.Eval.Type
@@ -48,14 +51,19 @@ import Cryptol.TypeCheck.Solver.InfNat(Nat'(..))
 import Cryptol.Utils.Ident (Ident)
 import Cryptol.Utils.PP
 
-import Data.List(genericDrop)
-
-import GHC.Generics (Generic)
-import Control.DeepSeq
 
 -- Values ----------------------------------------------------------------------
 
-type SeqMapV p = SeqMap (GenValue p)
+
+type family VBool p     = b | b -> p
+type family VInteger p  = i | i -> p
+type family VWord p     = w | w -> p
+type family VFloat p    = f | f -> p
+
+type Class (c :: HS.Type -> HS.Constraint) p =
+    (c (VBool p), c (VInteger p), c (VWord p), c (VFloat p))
+
+
 
 -- | For efficiency reasons, we handle finite sequences of bits as special cases
 --   in the evaluator.  In cases where we know it is safe to do so, we prefer to
@@ -154,12 +162,12 @@ updateWordValue (LargeBitsVal n xs) idx b
    | idx < n = return $ LargeBitsVal n $ updateSeqMap xs idx b
    | otherwise = invalidIndex idx
 
--- | Generic value type, parameterized on the representation of basic types.
---
---   NOTE: we maintain an important invariant regarding sequence types.
---   `VSeq` must never be used for finite sequences of bits.
---   Always use the `VWord` constructor instead!  Infinite sequences of bits
---   are handled by the `VStream` constructor, just as for other types.
+{- | Generic value type, parameterized on the representation of basic types.
+
+NOTE: we maintain an important invariant regarding sequence types.
+`VSeq` must never be used for finite sequences of bits.
+Always use the `VWord` constructor instead!  Infinite sequences of bits
+are handled by the `VStream` constructor, just as for other types. -}
 data GenValue p
   = VRecord ![(Ident, Eval (GenValue p))]     -- ^ @ { .. } @
   | VTuple ![Eval (GenValue p)]               -- ^ @ ( .. ) @
@@ -178,13 +186,7 @@ data GenValue p
 deriving instance Class NFData p => NFData (GenValue p)
 
 
-type family VBool p = b | b -> p
-type family VInteger p = i | i -> p
-type family VWord p = w | w -> p
-type family VFloat p = f | f -> p
-
-type Class (c :: HS.Type -> HS.Constraint) p =
-    (c (VBool p), c (VInteger p), c (VWord p), c (VFloat p))
+type SeqMapV p = SeqMap (GenValue p)
 
 
 
@@ -227,26 +229,16 @@ instance Class Show p => Show (GenValue p) where
 
 -- Pretty Printing -------------------------------------------------------------
 
-integerToChar :: Integer -> Char
-integerToChar = toEnum . fromInteger
 
-atFst :: Functor f => (a -> f b) -> (a, c) -> f (b, c)
-atFst f (x,y) = fmap (,y) $ f x
 
-atSnd :: Functor f => (a -> f b) -> (c, a) -> f (c, b)
-atSnd f (x,y) = fmap (x,) $ f y
-
-ppValue :: forall p
-         . BitWord p
-        => PPOpts
-        -> GenValue p
-        -> Eval Doc
+ppValue :: forall p. BitWord p => PPOpts -> GenValue p -> Eval Doc
 ppValue opts = loop
   where
   loop :: GenValue p -> Eval Doc
   loop val = case val of
-    VRecord fs         -> do fs' <- traverse (atSnd (>>=loop)) $ fs
-                             return $ braces (sep (punctuate comma (map ppField fs')))
+    VRecord fs ->
+      do fs' <- forM fs $ \(f,m) -> (f,) <$> (loop =<< m)
+         return $ braces (sep (punctuate comma (map ppField fs')))
       where
       ppField (f,r) = pp f <+> char '=' <+> r
     VTuple vals        -> do vals' <- traverse (>>=loop) vals
@@ -565,3 +557,7 @@ lookupRecord f rec = case lookup f (fromVRecord rec) of
   Just val -> val
   Nothing  -> evalPanic "lookupRecord" ["malformed record"]
 
+
+--------------------------------------------------------------------------------
+integerToChar :: Integer -> Char
+integerToChar = toEnum . fromInteger

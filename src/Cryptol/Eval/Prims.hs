@@ -20,7 +20,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-module Cryptol.Prims.Eval where
+module Cryptol.Eval.Prims where
 
 import Control.Monad (join, unless)
 

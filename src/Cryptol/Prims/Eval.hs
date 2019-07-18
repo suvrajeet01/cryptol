@@ -218,6 +218,7 @@ primTable = Map.fromList $ map (\(n, v) -> (mkIdent (T.pack n), v)) $
   ] ++ floatPrims
 
 
+floatPrims :: [(String, GenValue EvalConc)]
 floatPrims =
   [ ("fp"        , {-# SCC "Prelude::fp" #-}
                     nlam $ \ _e ->
@@ -226,6 +227,9 @@ floatPrims =
                     wlam $ \ expo -> pure $
                     wlam $ \ prec -> do ~(VBit s) <- sign
                                         VFloat <$> fp s expo prec)
+
+  , ("fpNaN"        , {-# SCC "Prelude::fpNaN" #-}         mkK fpNaN)
+  , ("fpPosInf"     , {-# SCC "Prelude::fpPosInf" #-}      mkK fpPosInf)
 
   , ("fpIsInf"      , {-# SCC "Prelude::fpIsInf" #-}       pred1 fpIsInf)
   , ("fpIsNaN"      , {-# SCC "Prelude::fpIsNaN" #-}       pred1 fpIsNaN)
@@ -242,6 +246,11 @@ floatPrims =
   ]
 
   where
+  mkK f = nlam $ \e' -> nlam $ \p' ->
+            case (e',p') of
+              (Nat e, Nat p) -> VFloat (f e p)
+              _ -> panic "mkK" [ "Unexpected `inf` in constant" ]
+
   pred1 p = nlam $ \_e ->
             nlam $ \_p ->
             lam  $ \fv -> do ~(VFloat v) <- fv
@@ -410,6 +419,7 @@ liftDivInteger op x y = ready $ op x y
 modWrap :: Integral a => a -> a -> Eval a
 modWrap _ 0 = divideByZero
 modWrap x y = return (x `mod` y)
+
 
 arithBinary :: forall p
              . BitWord p
@@ -1539,9 +1549,11 @@ errorV :: forall p
       -> Eval (GenValue p)
 errorV ty msg = case ty of
   -- bits
-  TVBit -> cryUserError msg
-  TVInteger -> cryUserError msg
+  TVBit      -> cryUserError msg
+  TVInteger  -> cryUserError msg
   TVIntMod _ -> cryUserError msg
+  TVFloat {} -> cryUserError msg
+  TVReal {}  -> cryUserError msg
 
   -- sequences
   TVSeq w ety

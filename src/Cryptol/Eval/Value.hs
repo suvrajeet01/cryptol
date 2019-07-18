@@ -591,7 +591,7 @@ instance BitWord EvalConc where
   ppInteger _opts i = integer i
 
   ppFloat opts i = ppFV (useBase opts) i
-  floatZero m n = fpZero m n
+  floatZero e p = fpZero e p
 
   bitLit b = b
   wordLit = mkBv

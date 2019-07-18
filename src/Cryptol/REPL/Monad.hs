@@ -14,6 +14,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE PatternSynonyms #-}
 
 module Cryptol.REPL.Monad (
     -- * REPL Monad
@@ -113,6 +114,7 @@ import qualified Control.Exception as X
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Text.Read (readMaybe)
+import LibBF
 
 import Data.SBV.Dynamic (sbvCheckSolverInstallation)
 
@@ -710,6 +712,13 @@ instance IsEnvVal String where
                    EnvString b -> b
                    _           -> badIsEnv "String"
 
+instance IsEnvVal RoundMode where
+  fromEnvVal x = case x of
+                   EnvString b
+                     | Just r <- lookup b roundingModes -> r
+                   _ -> badIsEnv "RoundMode"
+
+
 badIsEnv :: String -> a
 badIsEnv x = panic "fromEnvVal" [ "[REPL] Expected a `" ++ x ++ "` value." ]
 
@@ -754,6 +763,8 @@ userOptions :: OptionMap
 userOptions  = mkOptionMap
   [ simpleOpt "base" (EnvNum 16) checkBase
     "The base to display words at (2, 8, 10, or 16)."
+  , simpleOpt "round" (EnvString "rne") checkRoundinMode
+    "The default rounding mode for Float computations."
   , simpleOpt "debug" (EnvBool False) noCheck
     "Enable debugging output."
   , simpleOpt "ascii" (EnvBool False) noCheck
@@ -822,6 +833,18 @@ checkBase val = case val of
     | n `elem` [2,8,10,16] -> noWarns Nothing
     | otherwise            -> noWarns $ Just "base must be 2, 8, 10, or 16"
   _                     -> noWarns $ Just "unable to parse a value for base"
+
+checkRoundinMode :: Checker
+checkRoundinMode val =
+  case val of
+    EnvString x | Just _ <- lookup x roundingModes -> noWarns Nothing
+    _ -> noWarns $ Just "unable to parse the rounding mode"
+
+roundingModes :: [(String,RoundMode)]
+roundingModes = [ ("rne", NearEven), ("rna", NearAway)
+                , ("rtp", ToPosInf), ("trn",ToNegInf)
+                , ("rtz", ToZero)
+                ]
 
 checkInfLength :: Checker
 checkInfLength val = case val of

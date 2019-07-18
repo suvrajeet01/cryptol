@@ -273,7 +273,11 @@ getEvalOpts :: REPL E.EvalOpts
 getEvalOpts =
   do ppOpts <- getPPValOpts
      l      <- getLogger
-     return E.EvalOpts { E.evalPPOpts = ppOpts, E.evalLogger = l }
+     r      <- getKnownUser "round"
+     return E.EvalOpts { E.evalPPOpts = ppOpts
+                       , E.evalLogger = l
+                       , E.evalRound = r
+                       }
 
 evalCmd :: String -> REPL ()
 evalCmd str = do

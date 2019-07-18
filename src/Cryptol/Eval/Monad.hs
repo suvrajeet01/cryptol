@@ -35,7 +35,7 @@ module Cryptol.Eval.Monad
 , cryLoopError
 , cryNoPrimError
 , invalidIndex
-, unsupportedFloat
+, floatError, FloatError(..)
 ) where
 
 import           Control.DeepSeq
@@ -45,6 +45,7 @@ import           Control.Monad.IO.Class
 import           Data.IORef
 import           Data.Typeable (Typeable)
 import qualified Control.Exception as X
+import           LibBF(RoundMode)
 
 
 import Cryptol.Utils.Panic
@@ -67,6 +68,7 @@ data PPOpts = PPOpts
 data EvalOpts = EvalOpts
   { evalLogger :: Logger    -- ^ Where to print stuff (e.g., for @trace@)
   , evalPPOpts :: PPOpts    -- ^ How to pretty print things.
+  , evalRound  :: RoundMode -- ^ Rounding mode for class operations on @Float@.
   }
 
 
@@ -207,8 +209,16 @@ data EvalError
   | UserError String              -- ^ Call to the Cryptol @error@ primitive
   | LoopError String              -- ^ Detectable nontermination
   | NoPrim Name                   -- ^ Primitive with no implementation
-  | UnsupportedFloat Integer Integer  -- ^ We can't deal with floats like this
+  | FloatError FloatError
     deriving (Typeable,Show)
+
+-- | Errors related to floating point compitation
+data FloatError =
+    UnsupportedFloat Integer Integer  -- ^ We can't deal with floats like this
+  | UnsupportedRoundingMode Integer   -- ^ Don't know this rounding mode
+  | UnsupportedFloatOp String         -- ^ We haven't done this
+    deriving Show
+
 
 instance PP EvalError where
   ppPrec _ e = case e of
@@ -222,11 +232,28 @@ instance PP EvalError where
     UserError x -> text "Run-time error:" <+> text x
     LoopError x -> text "<<loop>>" <+> text x
     NoPrim x -> text "unimplemented primitive:" <+> pp x
-    UnsupportedFloat eb pb ->
-      "unsupported float precision" <+>
-        braces ("e =" <+> integer eb <.> comma <+> "p =" <+> integer pb)
+    FloatError fe -> pp fe
 
 instance X.Exception EvalError
+
+
+
+instance PP FloatError where
+  ppPrec _ e =
+    case e of
+
+      UnsupportedFloat eb pb ->
+        "unsupported float precision" <+>
+          braces ("e =" <+> integer eb <.> comma <+> "p =" <+> integer pb)
+
+      UnsupportedRoundingMode x ->
+        "unknown rounding mode:" <+> integer x
+
+      UnsupportedFloatOp op ->
+        "operation" <+> backticks (text op) <+> "is not supported on Floats"
+
+
+
 
 -- | For things like @`(inf)@ or @`(0-1)@.
 typeCannotBeDemoted :: Type -> a
@@ -265,6 +292,6 @@ cryLoopError msg = io (X.throwIO (LoopError msg))
 invalidIndex :: Integer -> Eval a
 invalidIndex i = io (X.throwIO (InvalidIndex i))
 
--- | We do not support floats of this shape
-unsupportedFloat :: Integer -> Integer -> Eval a
-unsupportedFloat m e = io (X.throwIO (UnsupportedFloat m e))
+floatError :: FloatError -> Eval a
+floatError x = io (X.throwIO (FloatError x))
+

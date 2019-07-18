@@ -41,13 +41,14 @@ import Data.SBV.Dynamic
 --import Cryptol.Eval.Monad
 import Cryptol.Eval.Type   (TValue(..), isTBit, tvSeq)
 import Cryptol.Eval.Monad  (Eval, ready)
+import Cryptol.Eval.SeqMap(SeqMap(..),lookupSeqMap,memoMap)
 import Cryptol.Eval.Value  ( GenValue(..), BitWord(..), lam, tlam, toStream,
                            toFinSeq, toSeq, WordValue(..),
                            fromSeq, fromVBit, fromVWord, fromVFun, fromVPoly,
-                           fromVTuple, fromVRecord, lookupRecord, SeqMap(..),
-                           ppBV, BV(..), integerToChar, lookupSeqMap, memoMap,
+                           fromVTuple, fromVRecord, lookupRecord,
+                           ppBV, BV(..), integerToChar,
                            wordValueSize, asBitsMap,
-                           VBool, VWord, VInteger, VFloat)
+                           VBool, VWord, VInteger, VFloat, SeqMapV)
 import Cryptol.Utils.Panic (panic)
 import Cryptol.Utils.PP
 
@@ -175,7 +176,7 @@ mergeValue' f c x1 x2 =
      v2 <- x2
      mergeValue f c v1 v2
 
-mergeSeqMap :: Bool -> SBool -> SeqMap EvalSym -> SeqMap EvalSym -> SeqMap EvalSym
+mergeSeqMap :: Bool -> SBool -> SeqMapV EvalSym -> SeqMapV EvalSym -> SeqMapV EvalSym
 mergeSeqMap f c x y =
   IndexSeqMap $ \i ->
   do xi <- lookupSeqMap x i

@@ -25,13 +25,12 @@ import qualified Data.Foldable as Fold
 
 import Cryptol.Eval.Monad (Eval(..), ready, invalidIndex, cryUserError)
 import Cryptol.Eval.Type  (finNat', TValue(..))
-import Cryptol.Eval.Value (BitWord(..), EvalPrims(..), enumerateSeqMap, SeqMap(..),
-                          reverseSeqMap, wlam, nlam, WordValue(..),
+import Cryptol.Eval.Value (BitWord(..), EvalPrims(..), SeqMapV,
+                          wlam, nlam, WordValue(..),
                           asWordVal, fromWordVal, fromBit,
                           enumerateWordValue, enumerateWordValueRev,
                           wordValueSize,
-                          updateWordValue,
-                          updateSeqMap, lookupSeqMap, memoMap )
+                          updateWordValue)
 import Cryptol.Prims.Eval (binary, unary, arithUnary,
                            arithBinary, Binary, BinArith,
                            logicBinary, logicUnary, zeroV,
@@ -42,6 +41,7 @@ import Cryptol.Prims.Eval (binary, unary, arithUnary,
                            ecToIntegerV, ecFromIntegerV,
                            ecNumberV, updatePrim, randomV, liftWord,
                            cmpValue, lg2)
+import Cryptol.Eval.SeqMap
 import Cryptol.Symbolic.Value
 import Cryptol.TypeCheck.AST (Decl(..))
 import Cryptol.TypeCheck.Solver.InfNat (Nat'(..), widthInteger)
@@ -285,7 +285,7 @@ logicShift nm wop reindex =
 
 indexFront :: Maybe Integer
            -> TValue
-           -> SeqMap EvalSym
+           -> SeqMapV EvalSym
            -> SWord
            -> Eval Value
 indexFront mblen a xs idx
@@ -315,7 +315,7 @@ indexFront mblen a xs idx
 
 indexBack :: Maybe Integer
           -> TValue
-          -> SeqMap EvalSym
+          -> SeqMapV EvalSym
           -> SWord
           -> Eval Value
 indexBack (Just n) a xs idx = indexFront (Just n) a (reverseSeqMap n xs) idx
@@ -323,7 +323,7 @@ indexBack Nothing _ _ _ = evalPanic "Expected finite sequence" ["indexBack"]
 
 indexFront_bits :: Maybe Integer
                 -> TValue
-                -> SeqMap EvalSym
+                -> SeqMapV EvalSym
                 -> Seq.Seq SBool
                 -> Eval Value
 indexFront_bits mblen a xs bits0 = go 0 (length bits0) (Fold.toList bits0)
@@ -349,7 +349,7 @@ indexFront_bits mblen a xs bits0 = go 0 (length bits0) (Fold.toList bits0)
 
 indexBack_bits :: Maybe Integer
                -> TValue
-               -> SeqMap EvalSym
+               -> SeqMapV EvalSym
                -> Seq.Seq SBool
                -> Eval Value
 indexBack_bits (Just n) a xs idx = indexFront_bits (Just n) a (reverseSeqMap n xs) idx
@@ -382,10 +382,10 @@ lazyMergeBit c x y =
 updateFrontSym
   :: Nat'
   -> TValue
-  -> SeqMap EvalSym
+  -> SeqMapV EvalSym
   -> WordValue EvalSym
   -> Eval (GenValue EvalSym)
-  -> Eval (SeqMap EvalSym)
+  -> Eval (SeqMapV EvalSym)
 updateFrontSym len _eltTy vs wv val =
   case wv of
     WordVal w | Just j <- SBV.svAsInteger w ->
@@ -425,10 +425,10 @@ updateFrontSym_word (Nat n) eltTy bv wv val =
 updateBackSym
   :: Nat'
   -> TValue
-  -> SeqMap EvalSym
+  -> SeqMapV EvalSym
   -> WordValue EvalSym
   -> Eval (GenValue EvalSym)
-  -> Eval (SeqMap EvalSym)
+  -> Eval (SeqMapV EvalSym)
 updateBackSym Inf _ _ _ _ = evalPanic "Expected finite sequence" ["updateBackSym"]
 updateBackSym (Nat n) _eltTy vs wv val =
   case wv of

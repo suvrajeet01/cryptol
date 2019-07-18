@@ -30,6 +30,7 @@ import qualified Cryptol.Eval.Arch as Arch
 import Cryptol.Eval.Monad
 import Cryptol.Eval.Type
 import Cryptol.Eval.Value
+import Cryptol.Eval.SeqMap
 import Cryptol.Eval.Float
 import Cryptol.Testing.Random (randomValue)
 import Cryptol.Utils.Panic (panic)
@@ -48,6 +49,9 @@ import qualified Data.Map.Strict as Map
 import qualified Data.Text as T
 
 import System.Random.TF.Gen (seedTFGen)
+
+
+type SeqValMap = SeqMapV EvalConc
 
 -- Primitives ------------------------------------------------------------------
 
@@ -834,7 +838,7 @@ joinWords :: forall p
            . BitWord p
           => Integer
           -> Integer
-          -> SeqMap p
+          -> SeqMapV p
           -> Eval (GenValue p)
 joinWords nParts nEach xs =
   loop (ready $ WordVal (wordLit 0 0)) (enumerateSeqMap nParts xs)
@@ -852,7 +856,7 @@ joinSeq :: BitWord p
         => Nat'
         -> Integer
         -> TValue
-        -> SeqMap p
+        -> SeqMapV p
         -> Eval (GenValue p)
 
 -- Special case for 0 length inner sequences.
@@ -1352,8 +1356,8 @@ rotateRS w _ vs by = IndexSeqMap $ \i ->
 
 -- | Indexing operations.
 indexPrim :: BitWord p
-          => (Maybe Integer -> TValue -> SeqMap p -> Seq.Seq (VBool p) -> Eval (GenValue p))
-          -> (Maybe Integer -> TValue -> SeqMap p -> VWord p -> Eval (GenValue p))
+          => (Maybe Integer -> TValue -> SeqMapV p -> Seq.Seq (VBool p) -> Eval (GenValue p))
+          -> (Maybe Integer -> TValue -> SeqMapV p -> VWord p -> Eval (GenValue p))
           -> GenValue p
 indexPrim bits_op word_op =
   nlam $ \ n  ->
@@ -1397,10 +1401,10 @@ indexBack_bits mblen a vs = indexBack mblen a vs . packWord . Fold.toList
 updateFront
   :: Nat'
   -> TValue
-  -> SeqMap EvalConc
+  -> SeqMapV EvalConc
   -> WordValue EvalConc
   -> Eval (GenValue EvalConc)
-  -> Eval (SeqMap EvalConc)
+  -> Eval (SeqMapV EvalConc)
 updateFront len _eltTy vs w val = do
   idx <- bvVal <$> asWordVal w
   case len of
@@ -1422,10 +1426,10 @@ updateFront_word _len _eltTy bs w val = do
 updateBack
   :: Nat'
   -> TValue
-  -> SeqMap EvalConc
+  -> SeqMapV EvalConc
   -> WordValue EvalConc
   -> Eval (GenValue EvalConc)
-  -> Eval (SeqMap EvalConc)
+  -> Eval (SeqMapV EvalConc)
 updateBack Inf _eltTy _vs _w _val =
   evalPanic "Unexpected infinite sequence in updateEnd" []
 updateBack (Nat n) _eltTy vs w val = do
@@ -1457,7 +1461,7 @@ updateBack_word (Nat n) _eltTy bs w val = do
 updatePrim
      :: BitWord p
      => (Nat' -> TValue -> WordValue p -> WordValue p -> Eval (GenValue p) -> Eval (WordValue p))
-     -> (Nat' -> TValue -> SeqMap p    -> WordValue p -> Eval (GenValue p) -> Eval (SeqMap p))
+     -> (Nat' -> TValue -> SeqMapV p    -> WordValue p -> Eval (GenValue p) -> Eval (SeqMapV p))
      -> GenValue p
 updatePrim updateWord updateSeq =
   nlam $ \len ->

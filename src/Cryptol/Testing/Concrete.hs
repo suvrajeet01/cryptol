@@ -13,6 +13,7 @@ import Control.Monad (join, liftM2)
 
 import Cryptol.Eval.Monad
 import Cryptol.Eval.Value
+import Cryptol.Eval.SeqMap
 import Cryptol.TypeCheck.AST
 import Cryptol.Utils.Panic (panic)
 

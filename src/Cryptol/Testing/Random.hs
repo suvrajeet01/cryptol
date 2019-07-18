@@ -12,7 +12,8 @@
 module Cryptol.Testing.Random where
 
 import Cryptol.Eval.Monad     (ready,runEval,EvalOpts)
-import Cryptol.Eval.Value     (Value,GenValue(..),SeqMap(..), WordValue(..), BitWord(..), EvalConc)
+import Cryptol.Eval.Value     (Value,GenValue(..), WordValue(..), BitWord(..), EvalConc)
+import Cryptol.Eval.SeqMap    (SeqMap(..))
 import qualified Cryptol.Testing.Concrete as Conc
 import Cryptol.TypeCheck.AST  (Type(..),TCon(..),TC(..),tNoUser)
 import Cryptol.TypeCheck.SimpType(tRebuild')

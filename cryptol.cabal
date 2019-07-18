@@ -161,6 +161,7 @@ library
                        Cryptol.Eval.Reference,
                        Cryptol.Eval.Type,
                        Cryptol.Eval.Value,
+                       Cryptol.Eval.SeqMap,
                        Cryptol.Eval.BV,
                        Cryptol.Eval.Float,
 

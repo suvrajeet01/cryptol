@@ -166,6 +166,7 @@ library
                        Cryptol.Eval.Concrete,
                        Cryptol.Eval.Concrete.BV,
                        Cryptol.Eval.Concrete.Float,
+                       Cryptol.Eval.Concrete.Integer,
                        Cryptol.Eval.Class.Arith,
                        Cryptol.Eval.Class.Cmp,
                        Cryptol.Eval.Class.Logic

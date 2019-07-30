@@ -37,6 +37,7 @@ import Cryptol.Eval.Value
 import Cryptol.Eval.Concrete
 import Cryptol.Eval.Concrete.Float
 import Cryptol.Eval.Concrete.BV
+import Cryptol.Eval.Concrete.Integer
 import Cryptol.Eval.Class.Arith
 import Cryptol.Eval.Class.Logic
 import Cryptol.Eval.GenPrims

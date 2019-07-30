@@ -9,7 +9,7 @@ import qualified Data.Foldable as Fold
 import qualified Data.Sequence as Seq
 
 
-import Cryptol.TypeCheck.Solver.InfNat (Nat'(..),genLog)
+import Cryptol.TypeCheck.Solver.InfNat (Nat'(..))
 import Cryptol.TypeCheck.AST
 import Cryptol.Utils.PP
 import Cryptol.Utils.Panic(panic)
@@ -20,6 +20,7 @@ import Cryptol.Eval.GenPrims
 import Cryptol.Eval.Monad
 import Cryptol.Eval.Concrete.BV
 import Cryptol.Eval.Concrete.Float
+import Cryptol.Eval.Concrete.Integer
 import Cryptol.Eval.SeqMap
 import Cryptol.Eval.Value
 import Cryptol.Eval.PP
@@ -128,33 +129,6 @@ fromWord msg val = bvVal <$> fromVWord msg val
 
 
 --------------------------------------------------------------------------------
-liftSigned :: (Integer -> Integer -> Integer -> Eval BV) -> Integer -> Fun 2 BV
-liftSigned _  0    = \_ _ -> return $ mkBv 0 0
-liftSigned op size = f
- where
- f (BV i x) (BV j y)
-   | i == j && size == i = op size sx sy
-   | otherwise = evalPanic "liftSigned" ["Attempt to compute with words of different sizes"]
-   where sx = signedValue i x
-         sy = signedValue j y
-
-signedBV :: BV -> Integer
-signedBV (BV i x) = signedValue i x
-
-signedValue :: Integer -> Integer -> Integer
-signedValue i x = if testBit x (fromIntegral (i-1)) then x - (1 `shiftL` (fromIntegral i)) else x
-
-bvSlt :: Integer -> Integer -> Integer -> Eval Value
-bvSlt _sz x y = return . VBit $! (x < y)
-
-bvSdiv :: Integer -> Integer -> Integer -> Eval BV
-bvSdiv  _ _ 0 = divideByZero
-bvSdiv sz x y = return $! mkBv sz (x `quot` y)
-
-bvSrem :: Integer -> Integer -> Integer -> Eval BV
-bvSrem  _ _ 0 = divideByZero
-bvSrem sz x y = return $! mkBv sz (x `rem` y)
-
 sshrV :: Value
 sshrV =
   nlam $ \_n ->
@@ -283,115 +257,6 @@ floatPrims =
                              VFloat <$> f r a b
 
 
-
---------------------------------------------------------------------------------
--- | Create a packed word
-modExp :: Integer -- ^ bit size of the resulting word
-       -> BV      -- ^ base
-       -> BV      -- ^ exponent
-       -> Eval BV
-modExp bits (BV _ base) (BV _ e)
-  | bits == 0            = ready $ BV bits 0
-  | base < 0 || bits < 0 = evalPanic "modExp"
-                             [ "bad args: "
-                             , "  base = " ++ show base
-                             , "  e    = " ++ show e
-                             , "  bits = " ++ show modulus
-                             ]
-  | otherwise            = ready $ mkBv bits $ doubleAndAdd base e modulus
-  where
-  modulus = 0 `setBit` fromInteger bits
-
-intModExp :: Integer -> Integer -> Integer -> Eval Integer
-intModExp modulus base e
-  | modulus > 0  = ready $ doubleAndAdd base e modulus
-  | modulus == 0 = integerExp base e
-  | otherwise    = evalPanic "intModExp" [ "negative modulus: " ++ show modulus ]
-
-integerExp :: Integer -> Integer -> Eval Integer
-integerExp x y
-  | y < 0     = negativeExponent
-  | otherwise = ready $ x ^ y
-
-integerLg2 :: Integer -> Eval Integer
-integerLg2 x
-  | x < 0     = logNegative
-  | otherwise = ready $ lg2 x
-
-integerNeg :: Integer -> Eval Integer
-integerNeg x = ready $ negate x
-
-intModNeg :: Integer -> Integer -> Eval Integer
-intModNeg modulus x = ready $ negate x `mod` modulus
-
-doubleAndAdd :: Integer -- ^ base
-             -> Integer -- ^ exponent mask
-             -> Integer -- ^ modulus
-             -> Integer
-doubleAndAdd base0 expMask modulus = go 1 base0 expMask
-  where
-  go acc base k
-    | k > 0     = acc' `seq` base' `seq` go acc' base' (k `shiftR` 1)
-    | otherwise = acc
-    where
-    acc' | k `testBit` 0 = acc `modMul` base
-         | otherwise     = acc
-
-    base' = base `modMul` base
-
-    modMul x y = (x * y) `mod` modulus
-
-
-
-
--- Arith -----------------------------------------------------------------------
-
--- | Turn a normal binop on Integers into one that can also deal with a bitsize.
---   However, if the bitvector size is 0, always return the 0
---   bitvector.
-liftBinArith :: (Integer -> Integer -> Integer) -> BinArith BV
-liftBinArith _  0 _        _        = ready $ mkBv 0 0
-liftBinArith op w (BV _ x) (BV _ y) = ready $ mkBv w $ op x y
-
--- | Turn a normal binop on Integers into one that can also deal with a bitsize.
---   Generate a thunk that throws a divide by 0 error when forced if the second
---   argument is 0.  However, if the bitvector size is 0, always return the 0
---   bitvector.
-liftDivArith :: (Integer -> Integer -> Integer) -> BinArith BV
-liftDivArith _  0 _        _        = ready $ mkBv 0 0
-liftDivArith _  _ _        (BV _ 0) = divideByZero
-liftDivArith op w (BV _ x) (BV _ y) = ready $ mkBv w $ op x y
-
-type BinArith w = Integer -> w -> w -> Eval w
-
-liftBinInteger :: (Integer -> Integer -> Integer) -> Integer -> Integer -> Eval Integer
-liftBinInteger op x y = ready $ op x y
-
-liftBinIntMod ::
-  (Integer -> Integer -> Integer) -> Integer -> Integer -> Integer -> Eval Integer
-liftBinIntMod op m x y
-  | m == 0    = ready $ op x y
-  | otherwise = ready $ (op x y) `mod` m
-
-liftDivInteger :: (Integer -> Integer -> Integer) -> Integer -> Integer -> Eval Integer
-liftDivInteger _  _ 0 = divideByZero
-liftDivInteger op x y = ready $ op x y
-
-modWrap :: Integral a => a -> a -> Eval a
-modWrap _ 0 = divideByZero
-modWrap x y = return (x `mod` y)
-
-
-type UnaryArith w = Integer -> w -> Eval w
-
-liftUnaryArith :: (Integer -> Integer) -> UnaryArith BV
-liftUnaryArith op w (BV _ x) = ready $ mkBv w $ op x
-
-lg2 :: Integer -> Integer
-lg2 i = case genLog i 2 of
-  Just (i',isExact) | isExact   -> i'
-                    | otherwise -> i' + 1
-  Nothing                       -> 0
 
 
 

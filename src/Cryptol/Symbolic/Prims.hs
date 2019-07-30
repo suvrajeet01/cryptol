@@ -33,7 +33,7 @@ import Cryptol.Eval.Value (BitWord(..), EvalPrims(..), SeqMapV,
                           wordValueSize,
                           updateWordValue, unary, binary, Fun)
 import Cryptol.Eval.Prims ( randomV )
-import Cryptol.Eval.Concrete(lg2)
+import Cryptol.Eval.Concrete.Integer(lg2)
 import Cryptol.Eval.SeqMap
 import Cryptol.Eval.Class.Arith
 import Cryptol.Eval.Class.Cmp

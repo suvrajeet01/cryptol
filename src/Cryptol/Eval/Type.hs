@@ -30,7 +30,7 @@ data TValue
   = TVBit                     -- ^ @ Bit @
   | TVInteger                 -- ^ @ Integer @
   | TVReal                    -- ^ @ Real @
-  | TVFloat Integer Integer   -- ^ @ Float s e@
+  | TVFloat Integer Integer   -- ^ @ Float e p@
   | TVIntMod Integer          -- ^ @ Z n @
   | TVSeq Integer TValue      -- ^ @ [n]a @
   | TVStream TValue           -- ^ @ [inf]t @

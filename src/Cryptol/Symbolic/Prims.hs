@@ -14,6 +14,7 @@
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE DataKinds #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Cryptol.Symbolic.Prims where
@@ -30,18 +31,14 @@ import Cryptol.Eval.Value (BitWord(..), EvalPrims(..), SeqMapV,
                           asWordVal, fromWordVal, fromBit,
                           enumerateWordValue, enumerateWordValueRev,
                           wordValueSize,
-                          updateWordValue)
-import Cryptol.Eval.Prims (binary, unary, arithUnary,
-                           arithBinary, Binary, BinArith,
-                           logicBinary, logicUnary, zeroV,
-                           ccatV, splitAtV, joinV, ecSplitV,
-                           reverseV, infFromV, infFromThenV,
-                           fromToV, fromThenToV,
-                           transposeV, indexPrim,
-                           ecToIntegerV, ecFromIntegerV,
-                           ecNumberV, updatePrim, randomV, liftWord,
-                           cmpValue, lg2)
+                          updateWordValue, unary, binary, Fun)
+import Cryptol.Eval.Prims ( randomV )
+import Cryptol.Eval.Concrete(lg2)
 import Cryptol.Eval.SeqMap
+import Cryptol.Eval.Arith
+import Cryptol.Eval.Cmp
+import Cryptol.Eval.Logic
+import Cryptol.Eval.GenPrims
 import Cryptol.Symbolic.Value
 import Cryptol.TypeCheck.AST (Decl(..))
 import Cryptol.TypeCheck.Solver.InfNat (Nat'(..), widthInteger)
@@ -80,21 +77,40 @@ primTable  = Map.fromList $ map (\(n, v) -> (mkIdent (T.pack n), v))
   , ("False"       , VBit SBV.svFalse)
   , ("number"      , ecNumberV) -- Converts a numeric type into its corresponding value.
                                 -- { val, rep } (Literal val rep) => rep
-  , ("+"           , binary (arithBinary (liftBinArith SBV.svPlus) (liftBin SBV.svPlus)
-                             sModAdd)) -- {a} (Arith a) => a -> a -> a
-  , ("-"           , binary (arithBinary (liftBinArith SBV.svMinus) (liftBin SBV.svMinus)
-                             sModSub)) -- {a} (Arith a) => a -> a -> a
-  , ("*"           , binary (arithBinary (liftBinArith SBV.svTimes) (liftBin SBV.svTimes)
-                             sModMult)) -- {a} (Arith a) => a -> a -> a
-  , ("/"           , binary (arithBinary (liftBinArith SBV.svQuot) (liftBin SBV.svQuot)
-                             (liftModBin SBV.svQuot))) -- {a} (Arith a) => a -> a -> a
-  , ("%"           , binary (arithBinary (liftBinArith SBV.svRem) (liftBin SBV.svRem)
-                             (liftModBin SBV.svRem))) -- {a} (Arith a) => a -> a -> a
-  , ("^^"          , binary (arithBinary sExp (liftBin SBV.svExp)
-                             sModExp)) -- {a} (Arith a) => a -> a -> a
-  , ("lg2"         , unary (arithUnary sLg2 svLg2 svModLg2)) -- {a} (Arith a) => a -> a
-  , ("negate"      , unary (arithUnary (\_ -> ready . SBV.svUNeg) (ready . SBV.svUNeg)
-                            (const (ready . SBV.svUNeg))))
+
+  , ("+"           , binary addV)
+  , ("-"           , binary subV)
+  , ("*"           , binary mulV)
+
+  , ("/"           , arith2 ArithPrims
+                       { arithWord    = liftBinArith SBV.svQuot
+                       , arithInteger = liftBin SBV.svQuot
+                       , arithZ       = liftModBin SBV.svQuot
+                       })
+
+  , ("%"           , arith2 ArithPrims
+                       { arithWord    = liftBinArith SBV.svRem
+                       , arithInteger = liftBin SBV.svRem
+                       , arithZ       = liftModBin SBV.svRem
+                       })
+
+  , ("^^"          , arith2 ArithPrims
+                        { arithWord    = sExp
+                        , arithInteger = liftBin SBV.svExp
+                        , arithZ       = sModExp
+                        })
+  , ("lg2"         , arith1 ArithPrims
+                      { arithWord = sLg2
+                      , arithInteger = svLg2
+                      , arithZ = svModLg2
+                      })
+
+  , ("negate"      , arith1 ArithPrims
+                      { arithWord = \_ -> ready . SBV.svUNeg
+                      , arithInteger = ready . SBV.svUNeg
+                      , arithZ = \_ -> ready . SBV.svUNeg
+                      })
+
   , ("<"           , binary (cmpBinary cmpLt cmpLt cmpLt (cmpMod cmpLt) SBV.svFalse))
   , (">"           , binary (cmpBinary cmpGt cmpGt cmpGt (cmpMod cmpGt) SBV.svFalse))
   , ("<="          , binary (cmpBinary cmpLtEq cmpLtEq cmpLtEq (cmpMod cmpLtEq) SBV.svTrue))
@@ -104,10 +120,19 @@ primTable  = Map.fromList $ map (\(n, v) -> (mkIdent (T.pack n), v))
   , ("<$"          , let boolFail = evalPanic "<$" ["Attempted signed comparison on bare Bit values"]
                          intFail = evalPanic "<$" ["Attempted signed comparison on Integer values"]
                       in binary (cmpBinary boolFail cmpSignedLt intFail (const intFail) SBV.svFalse))
-  , ("/$"          , binary (arithBinary (liftBinArith signedQuot) (liftBin SBV.svQuot)
-                             (liftModBin SBV.svQuot))) -- {a} (Arith a) => a -> a -> a
-  , ("%$"          , binary (arithBinary (liftBinArith signedRem) (liftBin SBV.svRem)
-                             (liftModBin SBV.svRem)))
+
+  , ("/$"          , arith2 ArithPrims
+                       { arithWord = liftBinArith signedQuot
+                       , arithInteger = liftBin SBV.svQuot
+                       , arithZ = liftModBin SBV.svQuot
+                       })
+
+  , ("%$"          , arith2 ArithPrims
+                       { arithWord = liftBinArith signedRem
+                       , arithInteger = liftBin SBV.svRem
+                       , arithZ = liftModBin SBV.svRem
+                       })
+
   , (">>$"         , sshrV)
   , ("&&"          , binary (logicBinary SBV.svAnd SBV.svAnd))
   , ("||"          , binary (logicBinary SBV.svOr SBV.svOr))
@@ -115,7 +140,7 @@ primTable  = Map.fromList $ map (\(n, v) -> (mkIdent (T.pack n), v))
   , ("complement"  , unary (logicUnary SBV.svNot SBV.svNot))
   , ("zero"        , tlam zeroV)
   , ("toInteger"   , ecToIntegerV)
-  , ("fromInteger" , ecFromIntegerV (const id))
+  , ("fromInteger" , ecFromIntegerV)
   , ("fromZ"      , nlam $ \ modulus ->
                     lam  $ \ x -> do
                       val <- x
@@ -487,7 +512,7 @@ asWordList = go id
                   Nothing -> Nothing
        go _f (LargeBitsVal _ _ : _) = Nothing
 
-liftBinArith :: (SWord -> SWord -> SWord) -> BinArith SWord
+liftBinArith :: (SWord -> SWord -> SWord) -> Integer -> Fun 2 SWord
 liftBinArith op _ x y = ready $ op x y
 
 liftBin :: (a -> b -> c) -> a -> b -> Eval c
@@ -585,8 +610,15 @@ cmpBinary :: (SBool -> SBool -> Eval SBool -> Eval SBool)
           -> (SWord -> SWord -> Eval SBool -> Eval SBool)
           -> (SInteger -> SInteger -> Eval SBool -> Eval SBool)
           -> (Integer -> SInteger -> SInteger -> Eval SBool -> Eval SBool)
-          -> SBool -> Binary EvalSym
-cmpBinary fb fw fi fz b ty v1 v2 = VBit <$> cmpValue fb fw fi fz ty v1 v2 (return b)
+          -> SBool -> TValue -> Fun 2 (GenValue EvalSym)
+cmpBinary fb fw fi fz b ty v1 v2 = VBit <$> cmpValue ops ty v1 v2 (return b)
+  where
+  ops = CmpPrims
+          { cmpBool = fb
+          , cmpWord = \_ -> fw
+          , cmpInteger = fi
+          , cmpZ = fz
+          }
 
 -- Signed arithmetic -----------------------------------------------------------
 

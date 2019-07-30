@@ -25,6 +25,9 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE ExplicitNamespaces #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE TypeOperators #-}
 
 module Cryptol.Eval.Value
   ( module Cryptol.Eval.Value
@@ -38,6 +41,7 @@ import MonadLib
 import qualified Data.Kind as HS (Type,Constraint)
 import Data.List(genericDrop)
 import GHC.Generics (Generic)
+import GHC.TypeNats(type (-))
 import Control.DeepSeq
 
 import Cryptol.Eval.Monad
@@ -389,6 +393,9 @@ class BitWord p where
   -- | Multiplication of unbounded integers.
   intMult :: VInteger p -> VInteger p -> VInteger p
 
+  -- | Compute the modulus of two integers.
+  intMod :: VInteger p -> VInteger p -> VInteger p
+
   -- | Addition of integers modulo n, for a concrete positive integer n.
   intModPlus :: Integer -> VInteger p -> VInteger p -> VInteger p
 
@@ -400,6 +407,13 @@ class BitWord p where
 
   -- | Construct a packed word of the specified width from an integer value.
   wordFromInt :: Integer -> VInteger p -> VWord p
+
+  -- | Construct a float from an integer.
+  fpFromInteger'  :: Integer -> Integer -> VInteger p -> Eval (VFloat p)
+  fpArithAdd' :: Integer -> Integer -> VFloat p -> VFloat p -> Eval (VFloat p)
+  fpArithSub' :: Integer -> Integer -> VFloat p -> VFloat p -> Eval (VFloat p)
+  fpArithMul' :: Integer -> Integer -> VFloat p -> VFloat p -> Eval (VFloat p)
+
 
 -- | This class defines additional operations necessary to define generic evaluation
 --   functions.
@@ -479,6 +493,11 @@ fromVInteger :: GenValue p -> VInteger p
 fromVInteger val = case val of
   VInteger i -> i
   _      -> evalPanic "fromVInteger" ["not an Integer"]
+
+fromVFloat :: GenValue p -> VFloat p
+fromVFloat val = case val of
+  VFloat f -> f
+  _  -> evalPanic "fromVFloat" ["not a Float"]
 
 -- | Extract a finite sequence value.
 fromVSeq :: GenValue p -> SeqMapV p
@@ -561,3 +580,29 @@ lookupRecord f rec = case lookup f (fromVRecord rec) of
 --------------------------------------------------------------------------------
 integerToChar :: Integer -> Char
 integerToChar = toEnum . fromInteger
+
+--------------------------------------------------------------------------------
+
+-- | A convenient notation for functions of the form: @a -> a -> Eval a@
+type family Fun n t where
+  Fun 0 t = Eval t
+  Fun n t = t -> Fun (n-1) t
+
+
+nullary :: (TValue -> Fun 0 (GenValue p)) -> GenValue p
+nullary  f = VPoly $ \ty -> f ty
+
+
+unary :: (TValue -> Fun 1 (GenValue p)) -> GenValue p
+unary f = tlam $ \ ty ->
+           lam $ \ a  -> f ty =<< a
+
+
+binary :: (TValue -> Fun 2 (GenValue p)) -> GenValue p
+binary f = tlam $ \ ty ->
+            lam $ \ a  -> return $
+            lam $ \ b  -> do
+               --io $ putStrLn "Entering a binary function"
+               join (f ty <$> a <*> b)
+
+

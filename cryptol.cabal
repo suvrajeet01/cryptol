@@ -164,6 +164,10 @@ library
                        Cryptol.Eval.Float,
                        Cryptol.Eval.Concrete,
                        Cryptol.Eval.Prims,
+                       Cryptol.Eval.GenPrims,
+                       Cryptol.Eval.Arith,
+                       Cryptol.Eval.Cmp,
+                       Cryptol.Eval.Logic,
                        Cryptol.Eval.PP
 
                        Cryptol.Testing.Concrete,

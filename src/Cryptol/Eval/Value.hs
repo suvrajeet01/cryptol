@@ -31,7 +31,6 @@
 
 module Cryptol.Eval.Value
   ( module Cryptol.Eval.Value
-  , module Cryptol.Eval.BV
   ) where
 
 import Data.Bits
@@ -46,7 +45,6 @@ import Control.DeepSeq
 
 import Cryptol.Eval.Monad
 import Cryptol.Eval.Type
-import Cryptol.Eval.BV
 import Cryptol.Eval.SeqMap
 import Cryptol.Eval.PP
 

@@ -1,6 +1,6 @@
 {-# Language TupleSections, DataKinds #-}
 -- | Utilities for implementing the @Logic@ class.
-module Cryptol.Eval.Logic where
+module Cryptol.Eval.Class.Logic where
 
 import Control.Monad(join)
 import qualified Data.Sequence as Seq

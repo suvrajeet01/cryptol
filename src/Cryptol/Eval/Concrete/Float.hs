@@ -1,5 +1,5 @@
 -- | Concrete evaluation of floating point numbers[
-module Cryptol.Eval.Float where
+module Cryptol.Eval.Concrete.Float where
 
 import Data.Word
 import LibBF
@@ -10,7 +10,7 @@ import Control.DeepSeq
 import Control.Exception(throw)
 import Control.Monad(unless)
 
-import Cryptol.Eval.BV
+import Cryptol.Eval.Concrete.BV
 import Cryptol.Eval.Monad
 import Cryptol.Utils.PP
 import Cryptol.Utils.Panic(panic)

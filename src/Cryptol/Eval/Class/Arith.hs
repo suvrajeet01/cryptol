@@ -1,6 +1,6 @@
 {-# Language TupleSections, DataKinds #-}
 -- | Utilities for implementing the @Arith@ class.
-module Cryptol.Eval.Arith where
+module Cryptol.Eval.Class.Arith where
 
 import Control.Monad(join)
 
@@ -164,40 +164,5 @@ arithBinary ops = loop
       evalPanic "arithBinary" ["Abstract type not in `Arith`"]
 
 
-
---------------------------------------------------------------------------------
--- Arith primitives that are used in the definitions of other primitives
-
-intV :: BitWord p => VInteger p -> TValue -> Fun 0 (GenValue p)
-intV i = arithNullary ArithPrims
-  { arithWord    = \n -> pure (wordFromInt n i)
-  , arithInteger = pure i
-  , arithZ       = \n -> pure (intMod i (integerLit n))
-  , arithFloat   = \e p -> fpFromInteger' e p i
-  }
-
-addV :: BitWord p => TValue -> Fun 2 (GenValue p)
-addV = arithBinary ArithPrims
-  { arithWord     = \_w x y -> ready $ wordPlus x y
-  , arithInteger  = \x y    -> ready $ intPlus x y
-  , arithZ        = \m x y  -> ready $ intModPlus m x y
-  , arithFloat    = fpArithAdd'
-  }
-
-subV :: BitWord p => TValue -> Fun 2 (GenValue p)
-subV = arithBinary ArithPrims
-  { arithWord    = \_w x y -> ready $ wordMinus x y
-  , arithInteger = \x y    -> ready $ intMinus x y
-  , arithZ       = \m x y  -> ready $ intModMinus m x y
-  , arithFloat   = fpArithSub'
-  }
-
-mulV :: BitWord p => TValue -> Fun 2 (GenValue p)
-mulV = arithBinary ArithPrims
-  { arithWord      = \_w x y -> ready $ wordMult x y
-  , arithInteger   = \x y    -> ready $ intMult x y
-  , arithZ         = \m x y  -> ready $ intModMult m x y
-  , arithFloat     = fpArithMul'
-  }
 
 

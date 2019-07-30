@@ -15,6 +15,7 @@ import Cryptol.Eval.Monad
 import Cryptol.Eval.Value
 import Cryptol.Eval.SeqMap
 import Cryptol.Eval.Concrete
+import Cryptol.Eval.Concrete.BV
 import Cryptol.Eval.PP
 import Cryptol.TypeCheck.AST
 import Cryptol.Utils.Panic (panic)

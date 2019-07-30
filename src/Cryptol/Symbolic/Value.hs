@@ -47,9 +47,10 @@ import Cryptol.Eval.Value  ( GenValue(..), BitWord(..), lam, tlam, toStream,
                            toFinSeq, toSeq, WordValue(..),
                            fromSeq, fromVBit, fromVWord, fromVFun, fromVPoly,
                            fromVTuple, fromVRecord, lookupRecord,
-                           ppBV, BV(..), integerToChar,
+                           integerToChar,
                            wordValueSize, asBitsMap,
                            VBool, VWord, VInteger, VFloat, SeqMapV)
+import Cryptol.Eval.Concrete.BV(BV(..),ppBV)
 import Cryptol.Utils.Panic (panic)
 import Cryptol.Utils.PP
 

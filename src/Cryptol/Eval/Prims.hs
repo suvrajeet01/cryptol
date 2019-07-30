@@ -35,9 +35,10 @@ import Cryptol.Eval.Monad
 import Cryptol.Eval.Type
 import Cryptol.Eval.Value
 import Cryptol.Eval.Concrete
-import Cryptol.Eval.Float
-import Cryptol.Eval.Arith
-import Cryptol.Eval.Logic
+import Cryptol.Eval.Concrete.Float
+import Cryptol.Eval.Concrete.BV
+import Cryptol.Eval.Class.Arith
+import Cryptol.Eval.Class.Logic
 import Cryptol.Eval.GenPrims
 import Cryptol.ModuleSystem.Name (asPrim)
 import Cryptol.Utils.Ident (Ident,mkIdent)

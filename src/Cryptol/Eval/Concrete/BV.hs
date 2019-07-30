@@ -1,5 +1,5 @@
 {-# Language DeriveGeneric, DeriveAnyClass #-}
-module Cryptol.Eval.BV where
+module Cryptol.Eval.Concrete.BV where
 
 import GHC.Generics (Generic)
 import Control.DeepSeq(NFData)

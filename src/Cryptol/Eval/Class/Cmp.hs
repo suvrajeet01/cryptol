@@ -1,5 +1,5 @@
 -- | Utilities for implementing the @Cmp@ class.
-module Cryptol.Eval.Cmp where
+module Cryptol.Eval.Class.Cmp where
 
 import Data.List(sortBy)
 import Data.Ord (comparing)

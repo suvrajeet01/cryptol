@@ -35,9 +35,9 @@ import Cryptol.Eval.Value (BitWord(..), EvalPrims(..), SeqMapV,
 import Cryptol.Eval.Prims ( randomV )
 import Cryptol.Eval.Concrete(lg2)
 import Cryptol.Eval.SeqMap
-import Cryptol.Eval.Arith
-import Cryptol.Eval.Cmp
-import Cryptol.Eval.Logic
+import Cryptol.Eval.Class.Arith
+import Cryptol.Eval.Class.Cmp
+import Cryptol.Eval.Class.Logic
 import Cryptol.Eval.GenPrims
 import Cryptol.Symbolic.Value
 import Cryptol.TypeCheck.AST (Decl(..))

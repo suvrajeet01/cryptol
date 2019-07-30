@@ -18,12 +18,12 @@ import Cryptol.Utils.Ident(mkIdent)
 import qualified Cryptol.Eval.Arch as Arch
 import Cryptol.Eval.GenPrims
 import Cryptol.Eval.Monad
-import Cryptol.Eval.BV
-import Cryptol.Eval.Float
+import Cryptol.Eval.Concrete.BV
+import Cryptol.Eval.Concrete.Float
 import Cryptol.Eval.SeqMap
 import Cryptol.Eval.Value
 import Cryptol.Eval.PP
-import Cryptol.Eval.Cmp
+import Cryptol.Eval.Class.Cmp
 import Cryptol.Eval.Type
 
 
